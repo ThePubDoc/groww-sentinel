@@ -85,11 +85,11 @@ def format_digest(flags: list[dict], portfolio: dict) -> str:
         ("⚪ NO PRICE", [f for f in non_hold if f["flag"] == "NO PRICE"]),
     ]
     sections = [
-        title + "\n" + "\n".join(_line(f) for f in items)
+        title + "\n\n" + "\n\n".join(_line(f) for f in items)
         for title, items in groups
         if items
     ]
-    return header + "\n\n" + "\n\n".join(sections)
+    return header + "\n\n\n" + "\n\n\n".join(sections)
 
 
 def send(token: str, chat_id: str, text: str) -> None:
