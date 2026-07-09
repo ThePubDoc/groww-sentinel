@@ -16,7 +16,7 @@ import yfinance as yf
 
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
-MODEL = "gemini-2.0-flash"
+MODEL = "gemini-2.5-flash"
 HEADLINE_LIMIT = 6
 AVOID = "AVOID"
 
@@ -50,7 +50,13 @@ def score(client, symbol: str, headlines: list[str]) -> dict:
     resp = client.models.generate_content(
         model=MODEL,
         contents=prompt,
-        config={"response_mime_type": "application/json", "max_output_tokens": 120},
+        config={
+            "response_mime_type": "application/json",
+            "max_output_tokens": 200,
+            # 2.5-flash is a thinking model; disable thinking so the token
+            # budget produces the JSON answer, not hidden reasoning.
+            "thinking_config": {"thinking_budget": 0},
+        },
     )
     data = json.loads(resp.text)
     return {"label": data.get("label", "neutral"), "reason": data.get("reason", "")}
