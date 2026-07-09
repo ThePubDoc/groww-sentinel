@@ -1,10 +1,10 @@
 """Write-side boundary: pure format_digest + thin Telegram send (NOTIFY-01..03, RULES-05).
 
-format_digest is pure -- zero I/O, fully testable without mocking HTTP. send()
-is the only network call in this module: plain text (no special formatting-mode
-key at all) to Telegram's sendMessage, truncated at 4096 chars on a newline
-boundary, raising on any non-2xx response. Plain text sidesteps the whole
-Markdown/HTML escaping failure class (RESEARCH.md Pattern 5) -- deliberate.
+format_digest is pure -- zero I/O, fully testable without mocking HTTP. It
+renders each flag as an emoji line with the P&L context and the concrete trade
+size (how many shares to buy/sell + rupee value). send() is the only network
+call: plain text (no parse_mode key at all) to Telegram's sendMessage, so no
+Markdown/HTML escaping failure class -- emojis + layout carry the visual weight.
 """
 
 import requests
@@ -14,23 +14,53 @@ TELEGRAM_MAX_LEN = 4096
 _ACTION_FLAGS = ("STOP", "TRIM", "TRAIL WATCH")
 _OPPORTUNITY_FLAGS = ("BOOK 50%", "BOOK 25%", "AVERAGE")
 
+_EMOJI = {
+    "STOP": "🛑", "TRIM": "✂️", "TRAIL WATCH": "📉",
+    "BOOK 50%": "💰", "BOOK 25%": "💵", "AVERAGE": "➕", "NO PRICE": "❔",
+}
+_VERB = {
+    "STOP": "cut it — sell all", "TRIM": "trim — sell",
+    "BOOK 50%": "book half — sell", "BOOK 25%": "book 25% — sell",
+    "AVERAGE": "average — buy", "TRAIL WATCH": "tighten stop / consider exit",
+    "NO PRICE": "price unavailable",
+}
 _GATE_REMINDER = (
-    "     3-gate check: results still good? is the fall market-wide (not "
-    "company-bad-news)? would I buy this fresh today?"
+    "   ↳ 3-gate: results still good? fall market-wide (not company bad news)? "
+    "would I buy fresh today?"
 )
 
 
+def _rupees(value: float) -> str:
+    v = round(value)
+    if v >= 100_000:
+        return f"₹{v / 100_000:.2f}L"
+    return f"₹{v:,}"
+
+
+def _context(f: dict) -> str:
+    if f["flag"] == "TRIM":
+        return f"{f['weight'] * 100:.0f}% of book"
+    if f["flag"] == "TRAIL WATCH":
+        return f"-{f['pct_below_peak'] * 100:.0f}% from peak"
+    if f["flag"] == "NO PRICE":
+        return ""
+    return f"{f['pct'] * 100:+.0f}%"
+
+
 def _line(f: dict) -> str:
-    line = f" - {f['message']}"
-    if f["flag"] == "AVERAGE":
+    emoji = _EMOJI.get(f["flag"], "•")
+    ctx = _context(f)
+    verb = _VERB.get(f["flag"], "")
+    qty = f" {f['shares']} sh (~{_rupees(f['value'])})" if f.get("shares") else ""
+    parts = [f"{emoji} {f['symbol']}"]
+    if ctx:
+        parts.append(f"  {ctx}")
+    if verb:
+        parts.append(f"  ·  {verb}{qty}")
+    line = "".join(parts)
+    if f.get("reminder"):
         line += "\n" + _GATE_REMINDER
     return line
-
-
-def _value_str(total_value: float) -> str:
-    if total_value >= 100_000:
-        return f"Rs {total_value / 100_000:.2f}L"
-    return f"Rs {total_value:,.0f}"
 
 
 def format_digest(flags: list[dict], portfolio: dict) -> str:
@@ -39,27 +69,26 @@ def format_digest(flags: list[dict], portfolio: dict) -> str:
     portfolio: {"total_value": float, "overall_pnl_pct": float, "date": date}.
     """
     pnl_pct = portfolio["overall_pnl_pct"] * 100
+    arrow = "📈" if pnl_pct >= 0 else "📉"
     header = (
-        f"Groww Sentinel -- {portfolio['date'].strftime('%d %b')}\n"
-        f"Value {_value_str(portfolio['total_value'])} | P&L {pnl_pct:+.1f}%"
+        f"📊 Groww Sentinel · {portfolio['date'].strftime('%d %b')}\n"
+        f"💰 {_rupees(portfolio['total_value'])}   {arrow} {pnl_pct:+.1f}%"
     )
 
     non_hold = [f for f in flags if f["flag"] != "HOLD"]
     if not non_hold:
-        return f"{header}\n\nAll quiet -- nothing to flag today, job ran fine."
+        return f"{header}\n\n✅ All quiet — nothing to flag today, job ran fine."
 
-    action = [f for f in non_hold if f["flag"] in _ACTION_FLAGS]
-    opportunity = [f for f in non_hold if f["flag"] in _OPPORTUNITY_FLAGS]
-    no_price = [f for f in non_hold if f["flag"] == "NO PRICE"]
-
-    sections = []
-    if action:
-        sections.append("ACTION\n" + "\n".join(_line(f) for f in action))
-    if opportunity:
-        sections.append("OPPORTUNITY\n" + "\n".join(_line(f) for f in opportunity))
-    if no_price:
-        sections.append("NO PRICE\n" + "\n".join(_line(f) for f in no_price))
-
+    groups = [
+        ("🔴 ACTION", [f for f in non_hold if f["flag"] in _ACTION_FLAGS]),
+        ("🟢 OPPORTUNITY", [f for f in non_hold if f["flag"] in _OPPORTUNITY_FLAGS]),
+        ("⚪ NO PRICE", [f for f in non_hold if f["flag"] == "NO PRICE"]),
+    ]
+    sections = [
+        title + "\n" + "\n".join(_line(f) for f in items)
+        for title, items in groups
+        if items
+    ]
     return header + "\n\n" + "\n\n".join(sections)
 
 
