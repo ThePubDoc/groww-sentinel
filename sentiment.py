@@ -67,7 +67,9 @@ def adjust(flags: list[dict], api_key: str | None) -> list[dict]:
         return flags
     import openai
 
-    client = openai.OpenAI(api_key=api_key)
+    # bounded: a dead-quota / slow key must not add many seconds of retries to
+    # an unattended cron run -- fail fast and degrade to the deterministic flag.
+    client = openai.OpenAI(api_key=api_key, max_retries=0, timeout=10)
     out = []
     for f in flags:
         if f["flag"] != "AVERAGE":
