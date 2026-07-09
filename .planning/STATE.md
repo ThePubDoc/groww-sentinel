@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 1 context gathered
-last_updated: "2026-07-09T14:36:16.492Z"
-last_activity: 2026-07-09 -- Phase 01 planning complete
+last_updated: "2026-07-09T14:51:47.489Z"
+last_activity: 2026-07-09
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** Every trading morning I get a short, trustworthy Telegram digest flagging which holdings need attention — so I never miss a stop, trim, or averaging opportunity.
-**Current focus:** Phase 1 — End-to-End Morning Digest
+**Current focus:** Phase 01 — end-to-end-morning-digest
 
 ## Current Position
 
-Phase: 1 of 3 (End-to-End Morning Digest)
-Plan: 0 of 3 in current phase
+Phase: 01 (end-to-end-morning-digest) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-09 -- Phase 01 planning complete
+Last activity: 2026-07-09
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01 P01 | 20min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,7 @@ Recent decisions affecting current work:
 - [Roadmap]: Vertical MVP slices — Phase 1 reaches a real Telegram digest end-to-end before state persistence and CI hardening.
 - [Roadmap]: `rules.py` built + fully unit-tested first (pure core), then wired to live broker + notify within Phase 1.
 - [Roadmap]: Dead-man's-switch (NOTIFY-05) placed in Phase 3 with the automated runtime — it only becomes meaningful once the bot runs unattended on cron.
+- [Phase 01]: D-01..D-14 implemented exactly as locked in rules.py; AVG tier2/3 boundary tests needed an isolating state peak due to a Pitfall 1 coincidence (TRAIL WATCH and AVG tier2 share the same 20% threshold when state={})
 
 ### Pending Todos
 
@@ -83,6 +85,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-09T14:03:48.076Z
+Last session: 2026-07-09T14:50:28.787Z
 Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-end-to-end-morning-digest/01-CONTEXT.md
+Resume file: None

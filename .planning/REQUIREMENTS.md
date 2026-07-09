@@ -17,11 +17,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Rules Engine
 
-- [ ] **RULES-01**: `rules.py` exposes a pure function `(holdings, config, state, today) -> (flags, new_state)` with no I/O
-- [ ] **RULES-02**: Every held stock resolves to exactly one flag — AVG CANDIDATE, TRAIL WATCH, TRIM, BOOK 50%, STOP HIT, HOLD, or UNTAGGED
-- [ ] **RULES-03**: All rule thresholds are defined as named constants in one place for tuning
-- [ ] **RULES-04**: `config.yaml` tags each holding `core` or `tactical`; a symbol missing from config emits UNTAGGED (never guess a bucket)
-- [ ] **RULES-05**: AVG CANDIDATE always carries the 3-gate manual-check reminder (flag and reminder are one coupled unit)
+- [x] **RULES-01**: `rules.py` exposes a pure function `(holdings, config, state, today) -> (flags, new_state)` with no I/O
+- [x] **RULES-02**: Every held stock resolves to exactly one flag — AVG CANDIDATE, TRAIL WATCH, TRIM, BOOK 50%, STOP HIT, HOLD, or UNTAGGED
+- [x] **RULES-03**: All rule thresholds are defined as named constants in one place for tuning
+- [x] **RULES-04**: `config.yaml` tags each holding `core` or `tactical`; a symbol missing from config emits UNTAGGED (never guess a bucket)
+- [x] **RULES-05**: AVG CANDIDATE always carries the 3-gate manual-check reminder (flag and reminder are one coupled unit)
 - [ ] **RULES-06**: Verify whether `growwapi` `average_price` is corporate-action adjusted; if not, emit a warning rather than a false STOP/BOOK flag on distorted avg cost
 
 ### State Model
@@ -30,7 +30,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **STATE-02**: Rebuild `new_state` from current holdings each run, using prior state as a read-only lookup
 - [ ] **STATE-03**: Prune state for symbols no longer held; reset a symbol's peak on exit and re-seed on rebuy
 - [ ] **STATE-04**: Store daily portfolio + per-symbol snapshots keyed by date; a same-day rerun overwrites (idempotent); history bounded to recent entries
-- [ ] **STATE-05**: On first run (no state.json), seed peaks and snapshots from current LTP
+- [x] **STATE-05**: On first run (no state.json), seed peaks and snapshots from current LTP
 
 ### P&L Reporting
 
@@ -58,7 +58,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Testing
 
-- [ ] **TEST-01**: Unit tests for `rules.py` covering every flag path and the boundary value of each threshold (AAA structure)
+- [x] **TEST-01**: Unit tests for `rules.py` covering every flag path and the boundary value of each threshold (AAA structure)
 - [ ] **TEST-02**: Mocked-I/O tests for `broker.py` and `notify.py` — no live API calls in tests
 
 ## v2 Requirements
@@ -101,16 +101,16 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DATA-03 | Phase 1 | Pending |
 | DATA-04 | Phase 1 | Pending |
 | DATA-05 | Phase 1 | Pending |
-| RULES-01 | Phase 1 | Pending |
-| RULES-02 | Phase 1 | Pending |
-| RULES-03 | Phase 1 | Pending |
-| RULES-04 | Phase 1 | Pending |
-| RULES-05 | Phase 1 | Pending |
-| STATE-05 | Phase 1 | Pending |
+| RULES-01 | Phase 1 | Complete |
+| RULES-02 | Phase 1 | Complete |
+| RULES-03 | Phase 1 | Complete |
+| RULES-04 | Phase 1 | Complete |
+| RULES-05 | Phase 1 | Complete |
+| STATE-05 | Phase 1 | Complete |
 | NOTIFY-01 | Phase 1 | Pending |
 | NOTIFY-02 | Phase 1 | Pending |
 | NOTIFY-03 | Phase 1 | Pending |
-| TEST-01 | Phase 1 | Pending |
+| TEST-01 | Phase 1 | Complete |
 | TEST-02 | Phase 1 | Pending |
 | STATE-01 | Phase 2 | Pending |
 | STATE-02 | Phase 2 | Pending |

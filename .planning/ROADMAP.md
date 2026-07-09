@@ -45,7 +45,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Pure `rules.py` + full boundary tests: ordered-resolver `evaluate(holdings, config, state, today)`, 7 flags, named threshold constants (D-01), AVG 3-tier + weight gate, UNTAGGED, first-run peak seed (STATE-05, TEST-01, RULES-01..05) + pinned `requirements.txt`
+- [x] 01-01-PLAN.md — Pure `rules.py` + full boundary tests: ordered-resolver `evaluate(holdings, config, state, today)`, 7 flags, named threshold constants (D-01), AVG 3-tier + weight gate, UNTAGGED, first-run peak seed (STATE-05, TEST-01, RULES-01..05) + pinned `requirements.txt`
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -104,6 +104,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. End-to-End Morning Digest | 0/3 | Not started | - |
+| 1. End-to-End Morning Digest | 1/3 | In Progress|  |
 | 2. Durable State & Portfolio Telemetry | 0/2 | Not started | - |
 | 3. Autonomous & Failure-Safe Runtime | 0/2 | Not started | - |
