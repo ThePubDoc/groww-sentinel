@@ -49,7 +49,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — `broker.py`: headless TOTP auth (pyotp, no token persistence), `get_holdings`, single batched `get_ltp`; mocked-boundary tests, no live calls (DATA-01/02/03/05, TEST-02)
+- [x] 01-02-PLAN.md — `broker.py`: headless TOTP auth (pyotp, no token persistence), `get_holdings`, single batched `get_ltp`; mocked-boundary tests, no live calls (DATA-01/02/03/05, TEST-02)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -104,6 +104,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. End-to-End Morning Digest | 1/3 | In Progress|  |
+| 1. End-to-End Morning Digest | 2/3 | In Progress|  |
 | 2. Durable State & Portfolio Telemetry | 0/2 | Not started | - |
 | 3. Autonomous & Failure-Safe Runtime | 0/2 | Not started | - |

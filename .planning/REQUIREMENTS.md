@@ -9,11 +9,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Data Access
 
-- [ ] **DATA-01**: Authenticate to Groww TradeAPI headlessly using API key + TOTP generated at runtime from a stored seed (pyotp)
-- [ ] **DATA-02**: Fetch holdings (trading symbol, quantity, average cost) via `growwapi`
-- [ ] **DATA-03**: Fetch live price (LTP) for all held symbols in a single batched call (`get_ltp`, ≤50 symbols)
+- [x] **DATA-01**: Authenticate to Groww TradeAPI headlessly using API key + TOTP generated at runtime from a stored seed (pyotp)
+- [x] **DATA-02**: Fetch holdings (trading symbol, quantity, average cost) via `growwapi`
+- [x] **DATA-03**: Fetch live price (LTP) for all held symbols in a single batched call (`get_ltp`, ≤50 symbols)
 - [ ] **DATA-04**: Validate all 4 required secrets are present at startup; fail loud naming the missing one
-- [ ] **DATA-05**: Never persist the Groww access token to state.json — regenerate it each run (token expires daily)
+- [x] **DATA-05**: Never persist the Groww access token to state.json — regenerate it each run (token expires daily)
 
 ### Rules Engine
 
@@ -59,7 +59,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Testing
 
 - [x] **TEST-01**: Unit tests for `rules.py` covering every flag path and the boundary value of each threshold (AAA structure)
-- [ ] **TEST-02**: Mocked-I/O tests for `broker.py` and `notify.py` — no live API calls in tests
+- [x] **TEST-02**: Mocked-I/O tests for `broker.py` and `notify.py` — no live API calls in tests
 
 ## v2 Requirements
 
@@ -96,11 +96,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | Phase 1 | Pending |
-| DATA-02 | Phase 1 | Pending |
-| DATA-03 | Phase 1 | Pending |
+| DATA-01 | Phase 1 | Complete |
+| DATA-02 | Phase 1 | Complete |
+| DATA-03 | Phase 1 | Complete |
 | DATA-04 | Phase 1 | Pending |
-| DATA-05 | Phase 1 | Pending |
+| DATA-05 | Phase 1 | Complete |
 | RULES-01 | Phase 1 | Complete |
 | RULES-02 | Phase 1 | Complete |
 | RULES-03 | Phase 1 | Complete |
@@ -111,7 +111,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | NOTIFY-02 | Phase 1 | Pending |
 | NOTIFY-03 | Phase 1 | Pending |
 | TEST-01 | Phase 1 | Complete |
-| TEST-02 | Phase 1 | Pending |
+| TEST-02 | Phase 1 | Complete |
 | STATE-01 | Phase 2 | Pending |
 | STATE-02 | Phase 2 | Pending |
 | STATE-03 | Phase 2 | Pending |
