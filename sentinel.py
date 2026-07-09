@@ -92,7 +92,7 @@ def main(argv: list[str] | None = None) -> int:
         # Optional news-sentiment layer: blocks risky adds (AVERAGE -> AVOID on
         # bearish news). Best-effort -- never let it break the run; no key = skip.
         try:
-            flags = sentiment.adjust(flags, env.get("ANTHROPIC_API_KEY"))
+            flags = sentiment.adjust(flags, env.get("OPENAI_API_KEY"))
         except Exception:
             pass
         portfolio = _portfolio_summary(merged, today)

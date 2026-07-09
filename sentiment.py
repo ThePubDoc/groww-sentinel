@@ -3,8 +3,8 @@
 Only ever BLOCKS a risky add: a bearish news read turns an AVERAGE (buy-the-dip)
 verdict into AVOID ("don't average -- news is bad"). It never invents buys and
 never changes a sell. Headlines are free (yfinance per-ticker news); the
-sentiment call is Claude Haiku (cheap). Disabled -> pure no-op when
-ANTHROPIC_API_KEY is absent, and any failure (no news, API error, bad JSON)
+sentiment call is OpenAI gpt-4o-mini (cheap). Disabled -> pure no-op when
+OPENAI_API_KEY is absent, and any failure (no news, API error, bad JSON)
 leaves the deterministic flag untouched -- sentiment can never break a run.
 """
 
@@ -16,7 +16,7 @@ import yfinance as yf
 
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
-MODEL = "claude-haiku-4-5-20251001"
+MODEL = "gpt-4o-mini"
 HEADLINE_LIMIT = 6
 AVOID = "AVOID"
 
@@ -39,7 +39,7 @@ def fetch_headlines(symbol: str, limit: int = HEADLINE_LIMIT) -> list[str]:
 
 
 def score(client, symbol: str, headlines: list[str]) -> dict:
-    """One Haiku call -> {'label','reason'}. Raises on API/parse error (caller guards)."""
+    """One gpt-4o-mini call -> {'label','reason'}. Raises on API/parse error (caller guards)."""
     prompt = (
         f"Recent news headlines for the stock {symbol}:\n"
         + "\n".join(f"- {h}" for h in headlines)
@@ -47,12 +47,12 @@ def score(client, symbol: str, headlines: list[str]) -> dict:
         'more of this stock. Reply ONLY compact JSON: '
         '{"label":"bullish|neutral|bearish","reason":"<=12 words"}.'
     )
-    msg = client.messages.create(
-        model=MODEL, max_tokens=120, messages=[{"role": "user", "content": prompt}]
+    resp = client.chat.completions.create(
+        model=MODEL, max_tokens=120,
+        response_format={"type": "json_object"},
+        messages=[{"role": "user", "content": prompt}],
     )
-    text = msg.content[0].text
-    text = text[text.find("{"): text.rfind("}") + 1]
-    data = json.loads(text)
+    data = json.loads(resp.choices[0].message.content)
     return {"label": data.get("label", "neutral"), "reason": data.get("reason", "")}
 
 
@@ -65,9 +65,9 @@ def adjust(flags: list[dict], api_key: str | None) -> list[dict]:
     """
     if not api_key:
         return flags
-    import anthropic
+    import openai
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = openai.OpenAI(api_key=api_key)
     out = []
     for f in flags:
         if f["flag"] != "AVERAGE":
