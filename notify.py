@@ -76,8 +76,7 @@ def format_digest(flags: list[dict], portfolio: dict) -> str:
     )
 
     non_hold = [f for f in flags if f["flag"] != "HOLD"]
-    if not non_hold:
-        return f"{header}\n\n✅ All quiet — nothing to flag today, job ran fine."
+    holds = [f for f in flags if f["flag"] == "HOLD"]
 
     groups = [
         ("🔴 ACTION", [f for f in non_hold if f["flag"] in _ACTION_FLAGS]),
@@ -89,7 +88,16 @@ def format_digest(flags: list[dict], portfolio: dict) -> str:
         for title, items in groups
         if items
     ]
-    return header + "\n\n\n" + "\n\n\n".join(sections)
+
+    # compact one-block HOLD summary -- proof every steady holding was checked
+    if holds:
+        steady = ", ".join(f"{f['symbol']} {f['pct'] * 100:+.0f}%" for f in holds)
+        sections.append(f"😴 HOLDING ({len(holds)})\n{steady}")
+
+    if not sections:
+        return f"{header}\n\n✅ All quiet — nothing to flag today, job ran fine."
+    body = "✅ Nothing to act on.\n\n\n" if not non_hold else ""
+    return header + "\n\n\n" + body + "\n\n\n".join(sections)
 
 
 def send(token: str, chat_id: str, text: str) -> None:

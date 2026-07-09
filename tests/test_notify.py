@@ -48,15 +48,16 @@ def test_header_includes_date():
 # --- format_digest: non-HOLD only + all quiet ---
 
 
-def test_hold_stocks_never_render():
+def test_hold_stocks_render_in_compact_summary_not_as_action():
     text = notify.format_digest([flag("TCS", "HOLD")], portfolio())
-    assert "TCS" not in text
+    assert "TCS" in text and "HOLDING" in text
 
 
-def test_all_quiet_line_when_nothing_fires():
+def test_nothing_to_act_on_when_only_holds():
     flags = [flag("TCS", "HOLD"), flag("INFY", "HOLD")]
     text = notify.format_digest(flags, portfolio())
-    assert "all quiet" in text.lower()
+    assert "nothing to act on" in text.lower()
+    assert "TCS" in text and "INFY" in text  # still listed in HOLDING summary
 
 
 def test_all_quiet_when_flags_list_empty():
