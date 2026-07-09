@@ -18,9 +18,9 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Rules Engine
 
 - [x] **RULES-01**: `rules.py` exposes a pure function `(holdings, config, state, today) -> (flags, new_state)` with no I/O
-- [x] **RULES-02**: Every held stock resolves to exactly one flag — AVG CANDIDATE, TRAIL WATCH, TRIM, BOOK 50%, STOP HIT, HOLD, or UNTAGGED
+- [x] **RULES-02**: Every held stock resolves to exactly one action flag from a uniform P&L ladder (no tagging) — BOOK 50%, BOOK 25%, AVERAGE, STOP, TRIM, TRAIL WATCH, HOLD (or NO PRICE). Ladder vs avg cost: gain >50% BOOK 50% · >25% BOOK 25% · −10 to −25% AVERAGE · worse than −25% STOP · else HOLD; plus TRIM >10% weight, TRAIL WATCH >20% below a real peak.
 - [x] **RULES-03**: All rule thresholds are defined as named constants in one place for tuning
-- [x] **RULES-04**: `config.yaml` tags each holding `core` or `tactical`; a symbol missing from config emits UNTAGGED (never guess a bucket)
+- [x] **RULES-04**: ~~`config.yaml` core/tactical tagging + UNTAGGED~~ — **SUPERSEDED (Phase 1)**: replaced by the uniform P&L ladder in RULES-02. No config file, no tagging, no UNTAGGED — every holding gets a verdict from its P&L.
 - [x] **RULES-05**: AVG CANDIDATE always carries the 3-gate manual-check reminder (flag and reminder are one coupled unit)
 - [ ] **RULES-06**: Verify whether `growwapi` `average_price` is corporate-action adjusted; if not, emit a warning rather than a false STOP/BOOK flag on distorted avg cost
 

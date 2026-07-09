@@ -54,9 +54,8 @@ opportunity, and I never have to open the app to check.
 
 - **Data access:** Official Groww TradeAPI via the `growwapi` Python SDK. Free, stable, sanctioned. Holdings via `get_holdings_for_user()` (gives qty + avg cost, **no** LTP). LTP fetched per symbol from the live-data endpoint each run.
 - **Auth:** API key + TOTP. Store the TOTP *seed*; generate the code at runtime with `pyotp` so it works headless in CI.
-- **Strategy encoded:** profit-booking + averaging. Flags: AVG CANDIDATE (core), TRAIL WATCH (core), TRIM (any), BOOK 50% (tactical), STOP HIT (tactical), HOLD, UNTAGGED. Thresholds live as named constants in one place for tuning.
-- **Manual gate:** AVG CANDIDATE is a *candidate only*. Digest reminds me to run the 3-gate check (results still good? fall market/sector-wide not company-bad-news? would I buy fresh today?) before adding. Any "no" → skip.
-- **Config:** `config.yaml` tags each holding `core` or `tactical`. Untagged symbol → UNTAGGED flag, never guess a bucket.
+- **Strategy encoded (revised):** ONE uniform P&L action ladder applied to every holding — no core/tactical tagging, no config file. Per stock vs average cost: gain >50% → BOOK 50%; >25% → BOOK 25%; −10 to −25% → AVERAGE; worse than −25% → STOP; else HOLD. Plus TRIM (>10% of portfolio) and TRAIL WATCH (>20% below a real peak). Thresholds are named constants in `rules.py`.
+- **Manual gate:** AVERAGE is a *candidate only*. Digest reminds me to run the 3-gate check (results still good? fall market/sector-wide not company-bad-news? would I buy fresh today?) before adding. Any "no" → skip.
 - **Prior design:** Full approved design spec at `docs/superpowers/specs/2026-07-09-groww-sentinel-design.md`.
 - **Sibling project:** `groww-dashboard` owns historical/tax/charges. Keep boundaries clean.
 
@@ -82,6 +81,8 @@ opportunity, and I never have to open the app to check.
 | Verify corporate-action adjustment at impl, don't pre-build | Confirm if growwapi pre-adjusts avg_price; only add handling/warning if it doesn't | — Pending |
 | Maintain NSE holiday calendar | Pre-market runs on holidays give stale/confusing prices; skip cleanly | — Pending |
 | Validate secrets at startup | Fail loud naming the missing secret vs cryptic mid-run crash | ✓ Good |
+| Unified P&L ladder, drop core/tactical tagging | User wants a direct per-stock verdict (this share is +50%, what do I do?) not a bucket-classification system; no config to maintain. One ladder for all holdings. | ✓ Good — verified live Phase 1 |
+| TRAIL WATCH only on peak > avg_cost | A plain loser's seeded peak = cost, so "below peak" == the loss — degenerate. Restrict TRAIL to genuine drawdowns from a real high; losers resolve to AVERAGE/STOP. | ✓ Good |
 | Prices from free external source (yfinance/Yahoo `.NS`), not Groww | Groww's LTP/OHLC/quote/historical are all a **paid** Live Data tier (verified 403 on every one); a pre-market digest only needs previous close, which Yahoo gives free. Groww account untouched (holdings stay official). | ✓ Good — verified live Phase 1 |
 
 ## Evolution
