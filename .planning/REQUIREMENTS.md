@@ -96,13 +96,45 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated by roadmapper) | — | Pending |
+| DATA-01 | Phase 1 | Pending |
+| DATA-02 | Phase 1 | Pending |
+| DATA-03 | Phase 1 | Pending |
+| DATA-04 | Phase 1 | Pending |
+| DATA-05 | Phase 1 | Pending |
+| RULES-01 | Phase 1 | Pending |
+| RULES-02 | Phase 1 | Pending |
+| RULES-03 | Phase 1 | Pending |
+| RULES-04 | Phase 1 | Pending |
+| RULES-05 | Phase 1 | Pending |
+| STATE-05 | Phase 1 | Pending |
+| NOTIFY-01 | Phase 1 | Pending |
+| NOTIFY-02 | Phase 1 | Pending |
+| NOTIFY-03 | Phase 1 | Pending |
+| TEST-01 | Phase 1 | Pending |
+| TEST-02 | Phase 1 | Pending |
+| STATE-01 | Phase 2 | Pending |
+| STATE-02 | Phase 2 | Pending |
+| STATE-03 | Phase 2 | Pending |
+| STATE-04 | Phase 2 | Pending |
+| PNL-01 | Phase 2 | Pending |
+| PNL-02 | Phase 2 | Pending |
+| PNL-03 | Phase 2 | Pending |
+| PNL-04 | Phase 2 | Pending |
+| PNL-05 | Phase 2 | Pending |
+| RULES-06 | Phase 2 | Pending |
+| RUN-01 | Phase 3 | Pending |
+| RUN-02 | Phase 3 | Pending |
+| RUN-03 | Phase 3 | Pending |
+| RUN-04 | Phase 3 | Pending |
+| RUN-05 | Phase 3 | Pending |
+| NOTIFY-04 | Phase 3 | Pending |
+| NOTIFY-05 | Phase 3 | Pending |
 
 **Coverage:**
-- v1 requirements: 27 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 27 ⚠️
+- v1 requirements: 33 total (the doc previously noted "27"; the enumerated list is 33 — all mapped, none dropped)
+- Mapped to phases: 33
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-07-09*
-*Last updated: 2026-07-09 after initial definition*
+*Last updated: 2026-07-09 after roadmap creation (traceability populated)*
