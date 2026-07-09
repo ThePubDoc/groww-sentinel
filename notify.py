@@ -11,18 +11,18 @@ import requests
 
 TELEGRAM_MAX_LEN = 4096
 
-_ACTION_FLAGS = ("STOP", "TRIM", "TRAIL WATCH")
+_ACTION_FLAGS = ("STOP", "TRIM", "TRAIL WATCH", "AVOID")
 _OPPORTUNITY_FLAGS = ("BOOK 50%", "BOOK 25%", "AVERAGE")
 
 _EMOJI = {
-    "STOP": "🛑", "TRIM": "✂️", "TRAIL WATCH": "📉",
+    "STOP": "🛑", "TRIM": "✂️", "TRAIL WATCH": "📉", "AVOID": "🚫",
     "BOOK 50%": "💰", "BOOK 25%": "💵", "AVERAGE": "➕", "NO PRICE": "❔",
 }
 _VERB = {
     "STOP": "cut it — sell all", "TRIM": "trim — sell",
     "BOOK 50%": "book half — sell", "BOOK 25%": "book 25% — sell",
     "AVERAGE": "average — buy", "TRAIL WATCH": "tighten stop / consider exit",
-    "NO PRICE": "price unavailable",
+    "AVOID": "hold — don't average (bad news)", "NO PRICE": "price unavailable",
 }
 _GATE_REMINDER = (
     "   ↳ 3-gate: results still good? fall market-wide (not company bad news)? "
@@ -58,6 +58,8 @@ def _line(f: dict) -> str:
     if verb:
         parts.append(f"  ·  {verb}{qty}")
     line = "".join(parts)
+    if f.get("sentiment", {}).get("reason"):
+        line += f"\n   ↳ news: {f['sentiment']['reason']}"
     if f.get("reminder"):
         line += "\n" + _GATE_REMINDER
     return line

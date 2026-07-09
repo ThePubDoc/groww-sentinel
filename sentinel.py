@@ -15,6 +15,7 @@ import broker
 import notify
 import prices
 import rules
+import sentiment
 
 REQUIRED_SECRETS = ["GROWW_API_KEY", "GROWW_TOTP_SEED", "TELEGRAM_TOKEN", "TELEGRAM_CHAT_ID"]
 
@@ -88,6 +89,12 @@ def main(argv: list[str] | None = None) -> int:
         ]
 
         flags, _new_state = rules.evaluate(merged, state={}, today=today)
+        # Optional news-sentiment layer: blocks risky adds (AVERAGE -> AVOID on
+        # bearish news). Best-effort -- never let it break the run; no key = skip.
+        try:
+            flags = sentiment.adjust(flags, env.get("ANTHROPIC_API_KEY"))
+        except Exception:
+            pass
         portfolio = _portfolio_summary(merged, today)
         message = notify.format_digest(flags, portfolio)
 
