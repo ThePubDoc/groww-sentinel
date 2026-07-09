@@ -20,7 +20,7 @@ never mistaken for "all quiet".
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: End-to-End Morning Digest** - Manually-triggered run fetches real holdings + prices, applies the rules engine, and sends a real Telegram flag digest
+- [x] **Phase 1: End-to-End Morning Digest** - Manually-triggered run fetches real holdings + prices, applies the rules engine, and sends a real Telegram flag digest (completed 2026-07-09)
 - [ ] **Phase 2: Durable State & Portfolio Telemetry** - Peaks and portfolio value persist across runs; digest carries P&L, N-day trend, and Friday weekly summary
 - [ ] **Phase 3: Autonomous & Failure-Safe Runtime** - Runs itself every weekday on GitHub Actions, skips holidays, persists state, and makes failures/missed runs detectable
 
@@ -53,7 +53,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-03-PLAN.md — `notify.py` (grouped non-HOLD digest + all-quiet + AVG reminder, plain-text send) + `sentinel.py` orchestrator (secret validation, `--dry-run`, IST today, state={}) + `config.yaml`/`.gitignore`; walking-skeleton end-to-end human-verify (DATA-04, NOTIFY-01/02/03, TEST-02)
+- [x] 01-03-PLAN.md — `notify.py` (grouped non-HOLD digest + all-quiet + AVG reminder, plain-text send) + `sentinel.py` orchestrator (secret validation, `--dry-run`, IST today, state={}) + `config.yaml`/`.gitignore`; walking-skeleton end-to-end human-verify (DATA-04, NOTIFY-01/02/03, TEST-02)
 
 ### Phase 2: Durable State & Portfolio Telemetry
 
@@ -104,6 +104,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. End-to-End Morning Digest | 2/3 | In Progress|  |
+| 1. End-to-End Morning Digest | 3/3 | Complete   | 2026-07-09 |
 | 2. Durable State & Portfolio Telemetry | 0/2 | Not started | - |
 | 3. Autonomous & Failure-Safe Runtime | 0/2 | Not started | - |
