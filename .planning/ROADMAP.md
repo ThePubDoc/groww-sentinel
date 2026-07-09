@@ -39,9 +39,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Pure `rules.py` — `evaluate(holdings, config, state, today)` with 7 flags, named threshold constants, core/tactical tagging + UNTAGGED, AVG 3-gate reminder, first-run peak seed (STATE-05); full boundary unit tests (TEST-01)
-- [ ] 01-02: `broker.py` — headless TOTP auth (pyotp), `get_holdings`, batched `get_ltp` (characterize LTP rate limits), startup secret validation, no token persistence; mocked broker tests
-- [ ] 01-03: `notify.py` + `sentinel.py` orchestrator — format grouped non-HOLD digest + "all quiet" heartbeat, send via Telegram Bot API, wire fetch → rules → notify end-to-end; mocked notify tests
+- [ ] 01-01-PLAN.md — Pure `rules.py` + full boundary tests: ordered-resolver `evaluate(holdings, config, state, today)`, 7 flags, named threshold constants (D-01), AVG 3-tier + weight gate, UNTAGGED, first-run peak seed (STATE-05, TEST-01, RULES-01..05) + pinned `requirements.txt`
+- [ ] 01-02-PLAN.md — `broker.py`: headless TOTP auth (pyotp, no token persistence), `get_holdings`, single batched `get_ltp`; mocked-boundary tests, no live calls (DATA-01/02/03/05, TEST-02)
+- [ ] 01-03-PLAN.md — `notify.py` (grouped non-HOLD digest + all-quiet + AVG reminder, plain-text send) + `sentinel.py` orchestrator (secret validation, `--dry-run`, IST today, state={}) + `config.yaml`/`.gitignore`; walking-skeleton end-to-end human-verify (DATA-04, NOTIFY-01/02/03, TEST-02)
 
 ### Phase 2: Durable State & Portfolio Telemetry
 **Goal**: The digest remembers price peaks and portfolio value across runs and reports overall P&L, day change, an N-day trend, and a Friday weekly summary — with corporate-action-distorted cost flagged rather than mis-flagged.
