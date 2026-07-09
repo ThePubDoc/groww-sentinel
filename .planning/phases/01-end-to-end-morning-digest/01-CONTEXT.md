@@ -30,6 +30,8 @@ Delivers requirements: DATA-01..05, RULES-01..05, STATE-05, NOTIFY-01..03, TEST-
 ### AVG CANDIDATE tiering (RULES-02)
 - **D-03:** 3-tier escalation, not single-fire. Fires at each of -10/-20/-30% from avg cost; the message shows which tranche (e.g. `AVG CANDIDATE tier 2 (-21%)`). Deeper fall = stronger add signal.
 - **D-04:** The `weight < 10%` gate applies to **all** tiers — if a core holding is already ≥10% of portfolio, suppress AVG even at -30% (averaging would over-concentrate; consistent with TRIM).
+- **D-13:** Flag precedence (resolves RULES-02 "exactly one flag" when a stock qualifies for several — TRIM can co-occur with price-action flags). Ordered chain, first match wins: **UNTAGGED > STOP HIT > TRIM > BOOK 50% > TRAIL WATCH > AVG CANDIDATE (deepest applicable tier) > HOLD.** Implement as one ordered resolver, not independent `if` branches. TEST-01 must include a multi-qualifying stock asserting the single expected flag.
+- **D-14:** Threshold boundary operator is **strict `>`** uniformly (matches spec's literal ">" wording). A stock exactly at a threshold does NOT fire (e.g. -12.00% is not STOP HIT; -12.01% is). Applies to every threshold including the AVG -10/-20/-30 tiers. Boundary tests assert exactly-at-threshold = no-fire, just-past = fire.
 
 ### Digest format (NOTIFY-01..03)
 - **D-05:** Each flagged line shows **symbol + flag + % + short action hint**, e.g. `RELIANCE: STOP HIT (-13% vs avg) → review exit`.
