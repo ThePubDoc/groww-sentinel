@@ -63,32 +63,3 @@ def test_get_holdings_extracts_minimal_plain_dicts():
         {"trading_symbol": "RELIANCE", "quantity": 10, "average_price": 2500.0}
     ]
     mock_client.get_holdings_for_user.assert_called_once_with(timeout=5)
-
-
-def test_get_ltp_batches_all_symbols_in_one_call():
-    # Arrange
-    mock_client = MagicMock()
-    mock_client.SEGMENT_CASH = "CASH"
-    mock_client.get_ltp.return_value = {"NSE_RELIANCE": 2801.25}
-
-    # Act
-    result = broker.get_ltp(mock_client, ["RELIANCE"])
-
-    # Assert: exactly one call, correct batched symbol tuple, correct mapping
-    mock_client.get_ltp.assert_called_once_with(
-        segment="CASH", exchange_trading_symbols=("NSE_RELIANCE",)
-    )
-    assert result == {"RELIANCE": 2801.25}
-
-
-def test_get_ltp_missing_symbol_maps_to_none():
-    # Arrange: TCS is absent from the response
-    mock_client = MagicMock()
-    mock_client.SEGMENT_CASH = "CASH"
-    mock_client.get_ltp.return_value = {"NSE_RELIANCE": 2801.25}
-
-    # Act
-    result = broker.get_ltp(mock_client, ["RELIANCE", "TCS"])
-
-    # Assert: missing key maps to None, never raises
-    assert result == {"RELIANCE": 2801.25, "TCS": None}

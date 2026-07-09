@@ -1,4 +1,4 @@
-"""I/O boundary to the Groww TradeAPI SDK (DATA-01, DATA-02, DATA-03, DATA-05).
+"""I/O boundary to the Groww TradeAPI SDK (DATA-01, DATA-02, DATA-05).
 
 Every call here talks to the network; nothing here is pure. Returns only
 plain dicts -- no growwapi SDK objects ever leak past this module, so the
@@ -43,17 +43,3 @@ def get_holdings(client: GrowwAPI) -> list[dict]:
         }
         for h in response.get("holdings", [])
     ]
-
-
-def get_ltp(client: GrowwAPI, symbols: list[str]) -> dict[str, float | None]:
-    """Batch-fetch live prices for all held symbols in a single call (DATA-03).
-
-    Builds one NSE_-prefixed tuple (<=50 symbols) and issues exactly one
-    get_ltp call. A symbol missing from the response maps to None --
-    defensive, not fatal; rules.py surfaces this as an explicit flag.
-    """
-    exchange_symbols = tuple(f"NSE_{symbol}" for symbol in symbols)
-    response = client.get_ltp(
-        segment=client.SEGMENT_CASH, exchange_trading_symbols=exchange_symbols
-    )
-    return {symbol: response.get(f"NSE_{symbol}") for symbol in symbols}

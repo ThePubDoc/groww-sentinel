@@ -11,7 +11,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **DATA-01**: Authenticate to Groww TradeAPI headlessly using API key + TOTP generated at runtime from a stored seed (pyotp)
 - [x] **DATA-02**: Fetch holdings (trading symbol, quantity, average cost) via `growwapi`
-- [x] **DATA-03**: Fetch live price (LTP) for all held symbols in a single batched call (`get_ltp`, ≤50 symbols)
+- [x] **DATA-03**: Fetch previous-close price for all held symbols from a free public quote source (yfinance/Yahoo `<symbol>.NS`, one batched call). *Amended Phase 1: Groww's live-data endpoints (`get_ltp`/`get_ohlc`/`get_quote`/historical) are all a paid tier — verified 403 on each; a pre-market digest only needs previous close. Unpriced symbols → NO PRICE flag, never fatal.*
 - [ ] **DATA-04**: Validate all 4 required secrets are present at startup; fail loud naming the missing one
 - [x] **DATA-05**: Never persist the Groww access token to state.json — regenerate it each run (token expires daily)
 

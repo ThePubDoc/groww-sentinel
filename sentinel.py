@@ -15,6 +15,7 @@ import yaml
 
 import broker
 import notify
+import prices
 import rules
 
 REQUIRED_SECRETS = ["GROWW_API_KEY", "GROWW_TOTP_SEED", "TELEGRAM_TOKEN", "TELEGRAM_CHAT_ID"]
@@ -82,7 +83,9 @@ def main(argv: list[str] | None = None) -> int:
             print("No holdings.")
             return 0
 
-        ltp = broker.get_ltp(client, [h["trading_symbol"] for h in holdings])
+        # "ltp" slot now carries the previous close (Groww live data is paid);
+        # sourced from a free public quote feed. See prices.py (DATA-03).
+        ltp = prices.get_prev_close([h["trading_symbol"] for h in holdings])
         merged = [
             {
                 "symbol": h["trading_symbol"],

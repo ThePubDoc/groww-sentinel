@@ -47,7 +47,7 @@ opportunity, and I never have to open the app to check.
 - Web dashboard / database / charts — Telegram message is the whole UI — YAGNI
 - Auto-fundamentals (earnings, debt, sector) — the 3-gate check stays manual — judgment can't be automated safely
 - Trade history / tax / charges reconstruction — that's the separate `groww-dashboard` project — Sentinel is forward-looking only
-- Scraping / unofficial APIs — official Groww TradeAPI only — sanctioned + stable
+- Scraping / sketchy Groww access — the Groww **account** stays on the official TradeAPI only (holdings, auth) — sanctioned + stable. *(Amended Phase 1: read-only public **price** quotes may come from a free external source — see Key Decisions — because Groww's price/live-data endpoints are a paid tier.)*
 - WhatsApp / email channels — Telegram only for v1; notify layer kept swappable — WhatsApp template-approval fights a dynamic daily digest
 
 ## Context
@@ -81,7 +81,8 @@ opportunity, and I never have to open the app to check.
 | Weekly summary = Friday appended block | One message, one job, no extra cron | — Pending |
 | Verify corporate-action adjustment at impl, don't pre-build | Confirm if growwapi pre-adjusts avg_price; only add handling/warning if it doesn't | — Pending |
 | Maintain NSE holiday calendar | Pre-market runs on holidays give stale/confusing prices; skip cleanly | — Pending |
-| Validate secrets at startup | Fail loud naming the missing secret vs cryptic mid-run crash | — Pending |
+| Validate secrets at startup | Fail loud naming the missing secret vs cryptic mid-run crash | ✓ Good |
+| Prices from free external source (yfinance/Yahoo `.NS`), not Groww | Groww's LTP/OHLC/quote/historical are all a **paid** Live Data tier (verified 403 on every one); a pre-market digest only needs previous close, which Yahoo gives free. Groww account untouched (holdings stay official). | ✓ Good — verified live Phase 1 |
 
 ## Evolution
 
