@@ -3,9 +3,9 @@
 Only ever BLOCKS a risky add: a bearish news read turns an AVERAGE (buy-the-dip)
 verdict into AVOID ("don't average -- news is bad"). It never invents buys and
 never changes a sell. Headlines are free (yfinance per-ticker news); the
-sentiment call is OpenAI gpt-4o-mini (cheap). Disabled -> pure no-op when
-OPENAI_API_KEY is absent, and any failure (no news, API error, bad JSON)
-leaves the deterministic flag untouched -- sentiment can never break a run.
+sentiment call is Google Gemini Flash (free tier, no card). Disabled -> pure
+no-op when GEMINI_API_KEY is absent, and any failure (no news, API error, bad
+JSON) leaves the deterministic flag untouched -- sentiment can never break a run.
 """
 
 import json
@@ -16,7 +16,7 @@ import yfinance as yf
 
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
-MODEL = "gpt-4o-mini"
+MODEL = "gemini-2.0-flash"
 HEADLINE_LIMIT = 6
 AVOID = "AVOID"
 
@@ -39,7 +39,7 @@ def fetch_headlines(symbol: str, limit: int = HEADLINE_LIMIT) -> list[str]:
 
 
 def score(client, symbol: str, headlines: list[str]) -> dict:
-    """One gpt-4o-mini call -> {'label','reason'}. Raises on API/parse error (caller guards)."""
+    """One Gemini Flash call -> {'label','reason'}. Raises on API/parse error (caller guards)."""
     prompt = (
         f"Recent news headlines for the stock {symbol}:\n"
         + "\n".join(f"- {h}" for h in headlines)
@@ -47,12 +47,12 @@ def score(client, symbol: str, headlines: list[str]) -> dict:
         'more of this stock. Reply ONLY compact JSON: '
         '{"label":"bullish|neutral|bearish","reason":"<=12 words"}.'
     )
-    resp = client.chat.completions.create(
-        model=MODEL, max_tokens=120,
-        response_format={"type": "json_object"},
-        messages=[{"role": "user", "content": prompt}],
+    resp = client.models.generate_content(
+        model=MODEL,
+        contents=prompt,
+        config={"response_mime_type": "application/json", "max_output_tokens": 120},
     )
-    data = json.loads(resp.choices[0].message.content)
+    data = json.loads(resp.text)
     return {"label": data.get("label", "neutral"), "reason": data.get("reason", "")}
 
 
@@ -65,11 +65,15 @@ def adjust(flags: list[dict], api_key: str | None) -> list[dict]:
     """
     if not api_key:
         return flags
-    import openai
+    from google import genai
+    from google.genai import types
 
-    # bounded: a dead-quota / slow key must not add many seconds of retries to
-    # an unattended cron run -- fail fast and degrade to the deterministic flag.
-    client = openai.OpenAI(api_key=api_key, max_retries=0, timeout=10)
+    # bounded: a slow/broken key must not add many seconds to an unattended
+    # cron run -- fail fast and degrade to the deterministic flag.
+    client = genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(timeout=10_000, retry_options=types.HttpRetryOptions(attempts=1)),
+    )
     out = []
     for f in flags:
         if f["flag"] != "AVERAGE":
