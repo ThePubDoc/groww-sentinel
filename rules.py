@@ -68,11 +68,11 @@ def _message(symbol: str, flag: str, gain: float, drop: float,
     if flag == TRIM:
         return f"{symbol}: TRIM ({weight * 100:.0f}% of portfolio) -> reduce"
     if flag == BOOK_50:
-        return f"{symbol}: BOOK 50% (+{gain * 100:.0f}% vs avg)"
+        return f"{symbol}: BOOK 50% (+{gain * 100:.0f}% vs avg) -> sell half"
     if flag == BOOK_25:
-        return f"{symbol}: BOOK 25% (+{gain * 100:.0f}% vs avg)"
+        return f"{symbol}: BOOK 25% (+{gain * 100:.0f}% vs avg) -> sell a quarter"
     if flag == TRAIL_WATCH:
-        return f"{symbol}: TRAIL WATCH (-{pct_below_peak * 100:.0f}% from peak)"
+        return f"{symbol}: TRAIL WATCH (-{pct_below_peak * 100:.0f}% from peak) -> tighten stop / consider exit"
     if flag == AVERAGE:
         return f"{symbol}: AVERAGE (-{drop * 100:.0f}% vs avg) -> add more"
     if flag == NO_PRICE:
