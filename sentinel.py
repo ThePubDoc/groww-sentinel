@@ -11,8 +11,6 @@ import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-import yaml
-
 import broker
 import notify
 import prices
@@ -33,12 +31,6 @@ def _redact(text: str, env: dict) -> str:
         if value:
             text = text.replace(value, "[REDACTED]")
     return text
-
-
-def _load_config(path: str = "config.yaml") -> dict:
-    """Flat symbol -> core|tactical map (RULES-04, D-10). Never yaml.load (T-01-03b)."""
-    with open(path) as fh:
-        return yaml.safe_load(fh) or {}
 
 
 def _best_effort_notify(env: dict, message: str) -> None:
@@ -73,7 +65,6 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        config = _load_config()
         today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
 
         client = broker.get_client(env["GROWW_API_KEY"], env["GROWW_TOTP_SEED"])
@@ -96,7 +87,7 @@ def main(argv: list[str] | None = None) -> int:
             for h in holdings
         ]
 
-        flags, _new_state = rules.evaluate(merged, config, state={}, today=today)
+        flags, _new_state = rules.evaluate(merged, state={}, today=today)
         portfolio = _portfolio_summary(merged, today)
         message = notify.format_digest(flags, portfolio)
 

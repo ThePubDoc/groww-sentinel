@@ -11,8 +11,8 @@ import requests
 
 TELEGRAM_MAX_LEN = 4096
 
-_ACTION_FLAGS = ("STOP HIT", "TRIM", "TRAIL WATCH")
-_OPPORTUNITY_FLAGS = ("AVG CANDIDATE", "BOOK 50%")
+_ACTION_FLAGS = ("STOP", "TRIM", "TRAIL WATCH")
+_OPPORTUNITY_FLAGS = ("BOOK 50%", "BOOK 25%", "AVERAGE")
 
 _GATE_REMINDER = (
     "     3-gate check: results still good? is the fall market-wide (not "
@@ -22,7 +22,7 @@ _GATE_REMINDER = (
 
 def _line(f: dict) -> str:
     line = f" - {f['message']}"
-    if f["flag"] == "AVG CANDIDATE":
+    if f["flag"] == "AVERAGE":
         line += "\n" + _GATE_REMINDER
     return line
 
@@ -50,7 +50,6 @@ def format_digest(flags: list[dict], portfolio: dict) -> str:
 
     action = [f for f in non_hold if f["flag"] in _ACTION_FLAGS]
     opportunity = [f for f in non_hold if f["flag"] in _OPPORTUNITY_FLAGS]
-    untagged = [f for f in non_hold if f["flag"] == "UNTAGGED"]
     no_price = [f for f in non_hold if f["flag"] == "NO PRICE"]
 
     sections = []
@@ -58,8 +57,6 @@ def format_digest(flags: list[dict], portfolio: dict) -> str:
         sections.append("ACTION\n" + "\n".join(_line(f) for f in action))
     if opportunity:
         sections.append("OPPORTUNITY\n" + "\n".join(_line(f) for f in opportunity))
-    if untagged:
-        sections.append("UNTAGGED\n" + "\n".join(_line(f) for f in untagged))
     if no_price:
         sections.append("NO PRICE\n" + "\n".join(_line(f) for f in no_price))
 
