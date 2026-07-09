@@ -186,11 +186,19 @@ def test_avg_candidate_tier1_just_past_10_percent_drop():
 
 
 def test_avg_candidate_tier2_just_past_20_percent_drop():
-    # Arrange: drop 20.01%
+    # Arrange: drop 20.01% from avg cost. Phase 1's peak seed collapses to
+    # avg_cost when price is down (state={} -> peak=max(ltp,avg_cost)), which
+    # would make pct_below_peak numerically equal to drop and let the
+    # higher-precedence TRAIL WATCH (>20% below peak) shadow this tier -- an
+    # extension of Pitfall 1. A pre-existing state peak equal to the current
+    # ltp isolates the tier math from that same-run coincidence (sentinel.py
+    # always passes state={} in Phase 1; this verifies the resolver's tier
+    # logic is correct and forward-compatible for when Phase 2 persists peaks).
     h = holding("ITC", avg_cost=1000.0, ltp=799.9)
     config = {"ITC": "core", "PAD": "core"}
+    state = {"ITC": {"peak": 799.9}}
     # Act
-    flags, _ = rules.evaluate(padded(h), config, state={}, today=TODAY)
+    flags, _ = rules.evaluate(padded(h), config, state=state, today=TODAY)
     itc = flag_for(flags, "ITC")
     # Assert
     assert itc["flag"] == "AVG CANDIDATE"
@@ -198,11 +206,13 @@ def test_avg_candidate_tier2_just_past_20_percent_drop():
 
 
 def test_avg_candidate_tier3_just_past_30_percent_drop():
-    # Arrange: drop 30.01%
+    # Arrange: drop 30.01% -- see tier2 test above for why a non-empty state
+    # peak (equal to current ltp) is needed to isolate this from TRAIL WATCH.
     h = holding("ITC", avg_cost=1000.0, ltp=699.9)
     config = {"ITC": "core", "PAD": "core"}
+    state = {"ITC": {"peak": 699.9}}
     # Act
-    flags, _ = rules.evaluate(padded(h), config, state={}, today=TODAY)
+    flags, _ = rules.evaluate(padded(h), config, state=state, today=TODAY)
     itc = flag_for(flags, "ITC")
     # Assert
     assert itc["flag"] == "AVG CANDIDATE"
