@@ -177,3 +177,46 @@ def test_first_run_seeds_peak_from_max_ltp_avgcost():
         [{"symbol": "X", "qty": 1, "avg_cost": 100.0, "ltp": 120.0}], {}, TODAY,
     )
     assert new_state["X"]["peak"] == 120.0
+
+
+# --- corp-action detection (RULES-06, D-09) -------------------------------
+
+def test_detect_corp_action_true_on_bonus_shape():
+    # 1:1 bonus: qty doubles, avg_cost halves -> capital flat
+    assert rules._detect_corp_action(100, 200.0, 200, 100.0) is True
+
+
+def test_detect_corp_action_false_on_real_average_buy():
+    # +25% qty at ~market price -> capital moved 30%, not flat
+    assert rules._detect_corp_action(100, 100.0, 125, 104.0) is False
+
+
+def test_detect_corp_action_false_when_no_prior_qty():
+    assert rules._detect_corp_action(None, None, 150, 100.0) is False
+
+
+def test_detect_corp_action_false_when_qty_growth_at_or_below_threshold():
+    # exactly 5% growth does not trip the strict-> threshold
+    assert rules._detect_corp_action(100, 100.0, 105, 100.0) is False
+
+
+def test_corp_action_overrides_would_be_average_flag_and_hides_pct():
+    state = {"X": {"qty": 5, "avg_cost": 200.0}}
+    f = _flag_for(90.0, avg=100.0, qty=10, state=state)
+    assert f["flag"] == rules.CORP_ACTION
+    assert f["pct"] is None
+
+
+def test_corp_action_overweight_still_trims():
+    flags, _ = rules.evaluate(
+        [{"symbol": "X", "qty": 200, "avg_cost": 100.0, "ltp": 90.0},
+         {"symbol": "FILL", "qty": 1, "avg_cost": 1.0, "ltp": 1.0}],
+        {"X": {"qty": 100, "avg_cost": 200.0}}, TODAY,
+    )
+    assert next(f for f in flags if f["symbol"] == "X")["flag"] == rules.TRIM
+
+
+def test_corp_action_still_trail_watches_far_below_peak():
+    state = {"X": {"peak": 500.0, "qty": 5, "avg_cost": 200.0}}
+    f = _flag_for(90.0, avg=100.0, qty=10, state=state)
+    assert f["flag"] == rules.TRAIL_WATCH
