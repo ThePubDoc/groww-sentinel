@@ -14,18 +14,16 @@ concurrency:
   group: groww-sentinel-run
   cancel-in-progress: false
 
+# State persists via actions/cache (NOT public on public repos), never a repo
+# commit -- so contents:write is gone and the portfolio never enters git.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   sentinel:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        # If the org blocks the default GITHUB_TOKEN's contents:write (D-05),
-        # verify empirically on the first workflow_dispatch run: if no new
-        # state.json commit appears, add `token: ${{ secrets.STATE_PAT }}`
-        # here and re-run.
 
       - uses: actions/setup-python@v5
         with:
@@ -33,6 +31,18 @@ jobs:
           cache: pip
 
       - run: pip install -r requirements.txt
+
+      # Restore the newest state.json from a prior run. The primary key never
+      # matches exactly (save keys carry a run-id suffix), so restore-keys
+      # prefix-matches the most recent saved entry. First run / evicted cache
+      # (>7d idle) => no file => state.load() falls back to the empty shape.
+      - name: Restore state
+        uses: actions/cache/restore@v4
+        with:
+          path: state.json
+          key: groww-sentinel-state
+          restore-keys: |
+            groww-sentinel-state-
 
       - name: Run Sentinel
         run: python -m sentinel
@@ -43,18 +53,14 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL }}
-        # NOTE: exit code must NOT be suppressed here -- a non-zero exit
-        # has to fail the job (NOTIFY-04/D-07)
+        # exit code must NOT be suppressed -- a non-zero exit fails the job (NOTIFY-04/D-07)
 
-      - name: Commit updated state.json
-        uses: stefanzweifel/git-auto-commit-action@v5
+      # Persist the mutated state under a unique key so every successful run
+      # saves a fresh entry; the next run's restore-keys picks it up.
+      # if: success() -- never persist state from a crashed run.
+      - name: Save state
+        if: success()
+        uses: actions/cache/save@v4
         with:
-          commit_message: "chore: update state.json [skip ci]"
-          file_pattern: state.json
-        # If the first workflow_dispatch run shows no new state.json commit,
-        # the org policy is blocking the default GITHUB_TOKEN (D-05). Fix:
-        #   1. Create a fine-grained PAT scoped to this repo only,
-        #      permission `contents: write` -- nothing broader.
-        #   2. Store it as the repo secret `STATE_PAT`.
-        #   3. Add `token: ${{ secrets.STATE_PAT }}` to the `actions/checkout`
-        #      step above, and re-run workflow_dispatch to confirm.
+          path: state.json
+          key: groww-sentinel-state-${{ github.run_id }}-${{ github.run_attempt }}
