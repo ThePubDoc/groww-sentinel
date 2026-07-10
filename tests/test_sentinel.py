@@ -37,6 +37,70 @@ def test_portfolio_summary_computes_value_and_pnl_pct():
     assert summary["date"] == date(2026, 7, 9)
 
 
+# --- _telemetry (PNL-02..04, D-12) ---
+
+
+def test_telemetry_computes_day_change_and_trend_from_loaded_snapshots(monkeypatch):
+    snapshots = {
+        "2026-07-08": {"total_value": 900.0, "symbols": {}, "flags_fired": 0},
+        "2026-07-09": {"total_value": 1000.0, "symbols": {}, "flags_fired": 0},
+    }
+    merged = [{"symbol": "A", "qty": 1, "avg_cost": 1.0, "ltp": 10.0}]
+    monkeypatch.setattr(sentinel.prices, "get_intraday", lambda symbols: {})
+
+    result = sentinel._telemetry(snapshots, date(2026, 7, 10), 1100.0, merged)
+
+    assert round(result["day_change_pct"], 4) == 0.1  # vs 2026-07-09 (1000 -> 1100)
+    assert result["trend"]["days"] == 2
+    assert round(result["trend"]["pct"], 4) == round((1100.0 - 900.0) / 900.0, 4)
+    assert result["intraday_pct"] is None
+
+
+def test_telemetry_omits_day_change_and_trend_on_first_run(monkeypatch):
+    monkeypatch.setattr(sentinel.prices, "get_intraday", lambda symbols: {})
+    result = sentinel._telemetry({}, date(2026, 7, 10), 1000.0, [])
+    assert result == {"day_change_pct": None, "trend": None, "intraday_pct": None}
+
+
+def test_telemetry_computes_value_weighted_intraday_pct(monkeypatch):
+    merged = [
+        {"symbol": "A", "qty": 10, "avg_cost": 1.0, "ltp": 100.0},
+        {"symbol": "B", "qty": 5, "avg_cost": 1.0, "ltp": 200.0},
+    ]
+    monkeypatch.setattr(
+        sentinel.prices, "get_intraday",
+        lambda symbols: {
+            "A": {"prev_close": 90.0, "last_price": 100.0},
+            "B": {"prev_close": 200.0, "last_price": 200.0},
+        },
+    )
+    result = sentinel._telemetry({}, date(2026, 7, 10), 2000.0, merged)
+    prev_total = 10 * 90.0 + 5 * 200.0
+    last_total = 10 * 100.0 + 5 * 200.0
+    assert round(result["intraday_pct"], 6) == round((last_total - prev_total) / prev_total, 6)
+
+
+def test_telemetry_intraday_none_when_source_lacks_prev_close(monkeypatch):
+    merged = [{"symbol": "A", "qty": 10, "avg_cost": 1.0, "ltp": 100.0}]
+    monkeypatch.setattr(
+        sentinel.prices, "get_intraday",
+        lambda symbols: {"A": {"prev_close": None, "last_price": 100.0}},
+    )
+    result = sentinel._telemetry({}, date(2026, 7, 10), 1000.0, merged)
+    assert result["intraday_pct"] is None
+
+
+def test_telemetry_never_raises_on_intraday_fetch_failure(monkeypatch):
+    merged = [{"symbol": "A", "qty": 10, "avg_cost": 1.0, "ltp": 100.0}]
+
+    def boom(symbols):
+        raise Exception("yfinance hiccup")
+
+    monkeypatch.setattr(sentinel.prices, "get_intraday", boom)
+    result = sentinel._telemetry({}, date(2026, 7, 10), 1000.0, merged)
+    assert result["intraday_pct"] is None
+
+
 def test_main_exits_2_and_prints_missing_secret_when_env_empty(monkeypatch, capsys):
     monkeypatch.setattr(sentinel.os, "environ", {})
     code = sentinel.main(["--dry-run"])
@@ -65,6 +129,7 @@ def test_main_wires_real_state_load_evaluate_save(monkeypatch, capsys):
         lambda client: [{"trading_symbol": "RELIANCE", "quantity": 10, "average_price": 2500.0}],
     )
     monkeypatch.setattr(sentinel.prices, "get_prev_close", lambda symbols: {"RELIANCE": 2400.0})
+    monkeypatch.setattr(sentinel.prices, "get_intraday", lambda symbols: {})
 
     received_peaks = {}
 

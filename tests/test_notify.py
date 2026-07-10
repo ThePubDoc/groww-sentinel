@@ -23,11 +23,15 @@ def flag(symbol, flag_name, message=None, reminder=False):
     }
 
 
-def portfolio(total_value=500000.0, overall_pnl_pct=0.05):
+def portfolio(total_value=500000.0, overall_pnl_pct=0.05,
+              day_change_pct=None, trend=None, intraday_pct=None):
     return {
         "total_value": total_value,
         "overall_pnl_pct": overall_pnl_pct,
         "date": date(2026, 7, 9),
+        "day_change_pct": day_change_pct,
+        "trend": trend,
+        "intraday_pct": intraday_pct,
     }
 
 
@@ -43,6 +47,40 @@ def test_header_shows_value_and_overall_pnl_pct():
 def test_header_includes_date():
     text = notify.format_digest([], portfolio())
     assert "09 Jul" in text
+
+
+# --- format_digest: header telemetry (PNL-01..04, D-07) ---
+
+
+def test_header_shows_day_change_trend_and_intraday_when_present():
+    text = notify.format_digest(
+        [],
+        portfolio(day_change_pct=0.012, trend={"days": 2, "pct": 0.011}, intraday_pct=0.008),
+    )
+    assert "Day +1.2%" in text
+    assert "2d" in text and "+1.1%" in text
+    assert "Intraday +0.8%" in text
+
+
+def test_header_omits_day_change_when_none():
+    text = notify.format_digest([], portfolio(day_change_pct=None))
+    assert "Day " not in text
+
+
+def test_header_omits_trend_when_none():
+    text = notify.format_digest([], portfolio(trend=None))
+    assert "d ↗" not in text and "d ↘" not in text
+
+
+def test_header_omits_intraday_when_none():
+    text = notify.format_digest([], portfolio(intraday_pct=None))
+    assert "Intraday" not in text
+
+
+def test_header_trend_label_reflects_actual_window_length():
+    text = notify.format_digest([], portfolio(trend={"days": 2, "pct": 0.05}))
+    assert "2d" in text
+    assert "5d" not in text
 
 
 # --- format_digest: non-HOLD only + all quiet ---

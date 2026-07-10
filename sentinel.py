@@ -55,6 +55,40 @@ def _portfolio_summary(merged: list[dict], today) -> dict:
     return {"total_value": total_value, "overall_pnl_pct": overall_pnl_pct, "date": today}
 
 
+def _telemetry(snapshots: dict, today, total_value: float, merged: list[dict]) -> dict:
+    """PNL-02/03/04: day-change %, N-day trend, and intraday % -- computed
+    from the LOADED (pre-write) snapshots (D-12) so a same-day rerun never
+    diffs against itself. Best-effort throughout: any missing baseline or
+    yfinance hiccup degrades to None rather than a 0% or a crash."""
+    day_change_pct = None
+    prior_value = state_mod.day_change(snapshots, today)
+    if prior_value:
+        day_change_pct = (total_value - prior_value) / prior_value
+
+    trend = None
+    trend_info = state_mod.n_day_trend(snapshots, today)
+    if trend_info and trend_info["baseline"]:
+        trend = {"days": trend_info["days"],
+                  "pct": (total_value - trend_info["baseline"]) / trend_info["baseline"]}
+
+    intraday_pct = None
+    try:
+        intraday = prices.get_intraday([h["symbol"] for h in merged if h["ltp"] is not None])
+        priced = [
+            (h["qty"], intraday[h["symbol"]]["prev_close"], intraday[h["symbol"]]["last_price"])
+            for h in merged if h["ltp"] is not None and intraday.get(h["symbol"], {}).get("prev_close")
+            and intraday.get(h["symbol"], {}).get("last_price")
+        ]
+        prev_total = sum(qty * prev for qty, prev, _ in priced)
+        last_total = sum(qty * last for qty, _, last in priced)
+        if prev_total:
+            intraday_pct = (last_total - prev_total) / prev_total
+    except Exception:
+        pass
+
+    return {"day_change_pct": day_change_pct, "trend": trend, "intraday_pct": intraday_pct}
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     dry_run = "--dry-run" in argv
@@ -100,6 +134,9 @@ def main(argv: list[str] | None = None) -> int:
         except Exception:
             pass
         portfolio = _portfolio_summary(merged, today)
+        # Telemetry (PNL-02..04) reads the LOADED snapshots -- BEFORE
+        # write_snapshot below overwrites today's key (D-12/Pattern 3).
+        portfolio.update(_telemetry(state["snapshots"], today, portfolio["total_value"], merged))
 
         # Persist peaks/snapshot/sentiment BEFORE sending, using the LOADED
         # snapshots (not a post-write copy) -- plan 02-03's day-change lookup

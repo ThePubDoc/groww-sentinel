@@ -67,16 +67,42 @@ def _line(f: dict) -> str:
     return line
 
 
+def _telemetry_line(portfolio: dict) -> str:
+    """Overall P&L (PNL-01, always present) plus Day/Nd-trend/Intraday
+    (PNL-02..04) -- each appended only when its portfolio field isn't None,
+    never rendered as a misleading "0%" (D-07). Trend labels with the actual
+    window length passed in, never a hardcoded "5d" (02-RESEARCH Pattern 4)."""
+    pnl_pct = portfolio["overall_pnl_pct"] * 100
+    arrow = "📈" if pnl_pct >= 0 else "📉"
+    parts = [f"{arrow} P&L {pnl_pct:+.1f}%"]
+
+    day_change_pct = portfolio.get("day_change_pct")
+    if day_change_pct is not None:
+        parts.append(f"Day {day_change_pct * 100:+.1f}%")
+
+    trend = portfolio.get("trend")
+    if trend is not None:
+        trend_arrow = "↗" if trend["pct"] >= 0 else "↘"
+        parts.append(f"{trend['days']}d {trend_arrow} {trend['pct'] * 100:+.1f}%")
+
+    intraday_pct = portfolio.get("intraday_pct")
+    if intraday_pct is not None:
+        parts.append(f"Intraday {intraday_pct * 100:+.1f}%")
+
+    return " · ".join(parts)
+
+
 def format_digest(flags: list[dict], portfolio: dict) -> str:
     """Pure: rules.evaluate()'s flags + a portfolio summary -> digest text.
 
-    portfolio: {"total_value": float, "overall_pnl_pct": float, "date": date}.
+    portfolio: {"total_value": float, "overall_pnl_pct": float, "date": date,
+    "day_change_pct": float|None, "trend": {"days": int, "pct": float}|None,
+    "intraday_pct": float|None}. The three telemetry keys are optional and
+    default to None-shaped omission when absent.
     """
-    pnl_pct = portfolio["overall_pnl_pct"] * 100
-    arrow = "📈" if pnl_pct >= 0 else "📉"
     header = (
         f"📊 Groww Sentinel · {portfolio['date'].strftime('%d %b')}\n"
-        f"💰 {_rupees(portfolio['total_value'])}   {arrow} {pnl_pct:+.1f}%"
+        f"💰 {_rupees(portfolio['total_value'])} · {_telemetry_line(portfolio)}"
     )
 
     non_hold = [f for f in flags if f["flag"] != "HOLD"]
