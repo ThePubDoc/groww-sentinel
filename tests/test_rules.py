@@ -10,6 +10,8 @@ Precedence: STOP > TRIM > BOOK > TRAIL WATCH > AVERAGE > HOLD.
 
 from datetime import date
 
+import pytest
+
 import rules
 
 TODAY = date(2026, 7, 9)
@@ -220,3 +222,41 @@ def test_corp_action_still_trail_watches_far_below_peak():
     state = {"X": {"peak": 500.0, "qty": 5, "avg_cost": 200.0}}
     f = _flag_for(90.0, avg=100.0, qty=10, state=state)
     assert f["flag"] == rules.TRAIL_WATCH
+
+
+# --- peak rescale + state carry-forward (STATE-01/02/03, D-11) -----------
+
+def test_corp_action_rescales_peak_avoiding_phantom_trail_watch():
+    # prior peak 200 captured pre-bonus; 1:1 bonus halves the price level
+    state = {"X": {"peak": 200.0, "qty": 100, "avg_cost": 200.0}}
+    flags, new_state = rules.evaluate(
+        [{"symbol": "X", "qty": 200, "avg_cost": 100.0, "ltp": 100.0},
+         {"symbol": "FILL", "qty": 1, "avg_cost": 1.0, "ltp": 1.0}],
+        state, TODAY,
+    )
+    f = next(f for f in flags if f["symbol"] == "X")
+    assert f["flag"] != rules.TRAIL_WATCH
+    assert new_state["X"]["peak"] == pytest.approx(100.0)
+
+
+def test_new_state_carries_qty_and_avg_cost_forward():
+    _, new_state = rules.evaluate(
+        [{"symbol": "X", "qty": 10, "avg_cost": 100.0, "ltp": 120.0}], {}, TODAY,
+    )
+    assert new_state["X"] == {"peak": 120.0, "qty": 10, "avg_cost": 100.0}
+
+
+def test_symbol_dropped_from_holdings_is_pruned_from_new_state():
+    _, new_state = rules.evaluate(
+        [{"symbol": "X", "qty": 10, "avg_cost": 100.0, "ltp": 120.0}],
+        {"SOLD": {"peak": 50.0, "qty": 5, "avg_cost": 40.0}}, TODAY,
+    )
+    assert "SOLD" not in new_state
+
+
+def test_rebought_symbol_reseeds_peak_from_max_ltp_avgcost():
+    # symbol was dropped (no prior state) then reappears -- fresh seed, not stale
+    _, new_state = rules.evaluate(
+        [{"symbol": "X", "qty": 10, "avg_cost": 100.0, "ltp": 80.0}], {}, TODAY,
+    )
+    assert new_state["X"]["peak"] == 100.0
