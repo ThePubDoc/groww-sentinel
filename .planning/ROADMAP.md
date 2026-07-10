@@ -22,7 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: End-to-End Morning Digest** - Manually-triggered run fetches real holdings + prices, applies the rules engine, and sends a real Telegram flag digest (completed 2026-07-09)
 - [x] **Phase 2: Durable State & Portfolio Telemetry** - Peaks and portfolio value persist across runs; digest carries P&L, N-day trend, and Friday weekly summary (completed 2026-07-10)
-- [ ] **Phase 3: Autonomous & Failure-Safe Runtime** - Runs itself every weekday on GitHub Actions, skips holidays, persists state, and makes failures/missed runs detectable
+- [x] **Phase 3: Autonomous & Failure-Safe Runtime** - Runs itself every weekday on GitHub Actions, skips holidays, persists state, and makes failures/missed runs detectable (completed 2026-07-10)
 
 ## Phase Details
 
@@ -112,7 +112,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 03-03-PLAN.md — First `workflow_dispatch` real-world human-verify checkpoint: confirm green run, Telegram digest, state.json commit-back (default token or STATE_PAT fallback), and healthchecks.io heartbeat (RUN-03, RUN-05, NOTIFY-04, NOTIFY-05)
+- [x] 03-03-PLAN.md — First `workflow_dispatch` real-world human-verify checkpoint: confirm green run, Telegram digest, state.json commit-back (default token or STATE_PAT fallback), and healthchecks.io heartbeat (RUN-03, RUN-05, NOTIFY-04, NOTIFY-05)
 
 ## Progress
 
@@ -123,4 +123,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. End-to-End Morning Digest | 3/3 | Complete   | 2026-07-09 |
 | 2. Durable State & Portfolio Telemetry | 4/4 | Complete   | 2026-07-10 |
-| 3. Autonomous & Failure-Safe Runtime | 2/3 | In Progress|  |
+| 3. Autonomous & Failure-Safe Runtime | 3/3 | Complete   | 2026-07-10 |
