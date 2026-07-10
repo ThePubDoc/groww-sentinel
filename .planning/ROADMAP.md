@@ -102,12 +102,17 @@ Plans:
   4. On an auth or fetch failure a Telegram warning naming the reason is sent and the run exits non-zero — a day is never silently skipped.
   5. An independent dead-man's-switch makes a missed cron or crash detectable, so message absence is never mistaken for "all quiet".
 
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
+**Wave 1**
 
-- [ ] 03-01: `.github/workflows/sentinel.yml` — cron ~08:30 IST weekdays on a non-top-of-hour minute (RUN-01), static NSE holiday skip (RUN-02), `contents: write` state-commit step after the Python process exits with org-policy check + PAT fallback (RUN-03), `concurrency` guard (RUN-04), `workflow_dispatch` trigger (RUN-05)
-- [ ] 03-02: Failure safety — auth/fetch-failure Telegram notify + non-zero exit (NOTIFY-04), independent dead-man's-switch that does not depend on the sentinel job (NOTIFY-05)
+- [ ] 03-01-PLAN.md — `holidays.py` static NSE-2026 trading-holiday set + `is_trading_holiday` (warn past last seeded year), `sentinel._market_closed` weekend/holiday early-exit, and a best-effort `notify.healthcheck_ping` heartbeat on every clean exit but never on the error path; unit-tested with injected `today` (RUN-02, NOTIFY-05)
+- [ ] 03-02-PLAN.md — `.github/workflows/sentinel.yml`: 3×/weekday UTC cron (03:30/07:00/10:00, non-top-of-hour) + `workflow_dispatch` (RUN-01, RUN-05), `concurrency` guard (RUN-04), `permissions: contents: write` + `git-auto-commit-action@v5` state.json commit-back with `[skip ci]` and commented STATE_PAT fallback (RUN-03), un-masked `python -m sentinel` exit (NOTIFY-04); plus a README secrets + healthchecks.io + first-dispatch runbook
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 03-03-PLAN.md — First `workflow_dispatch` real-world human-verify checkpoint: confirm green run, Telegram digest, state.json commit-back (default token or STATE_PAT fallback), and healthchecks.io heartbeat (RUN-03, RUN-05, NOTIFY-04, NOTIFY-05)
 
 ## Progress
 
@@ -118,4 +123,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. End-to-End Morning Digest | 3/3 | Complete   | 2026-07-09 |
 | 2. Durable State & Portfolio Telemetry | 4/4 | Complete   | 2026-07-10 |
-| 3. Autonomous & Failure-Safe Runtime | 0/2 | Not started | - |
+| 3. Autonomous & Failure-Safe Runtime | 0/3 | Not started | - |
