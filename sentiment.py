@@ -16,7 +16,7 @@ import yfinance as yf
 
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.1-flash-lite"
 HEADLINE_LIMIT = 6
 AVOID = "AVOID"
 
