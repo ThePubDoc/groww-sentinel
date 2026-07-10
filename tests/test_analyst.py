@@ -138,6 +138,17 @@ def test_fresh_score_builds_dated_pruned_cache_and_applies_override():
     assert out_cache["RELIANCE"]["date"] == "2026-07-10"
 
 
+def test_parse_json_tolerates_trailing_extra_data():
+    # the real failure: valid object followed by trailing junk (json.loads -> Extra data)
+    text = '{"brief":{"regime":"x"},"stocks":{}}\n\nextra model chatter'
+    assert analyst._parse_json(text) == {"brief": {"regime": "x"}, "stocks": {}}
+
+
+def test_parse_json_tolerates_code_fence():
+    text = '```json\n{"brief":{},"stocks":{}}\n```'
+    assert analyst._parse_json(text) == {"brief": {}, "stocks": {}}
+
+
 def test_score_portfolio_drops_out_of_vocab_flags():
     class FakeResp:
         text = ('{"brief":{"regime":"x"},"stocks":{'

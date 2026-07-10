@@ -143,6 +143,18 @@ def _build_prompt(flags, portfolio, funds, macro, sector_weights) -> str:
     )
 
 
+def _parse_json(text: str) -> dict:
+    """Tolerant parse of the model's reply. flash-lite occasionally appends
+    trailing content after the JSON object (json.loads -> 'Extra data') or wraps
+    it in a ``` fence despite the JSON mime type -- never trust external output.
+    Strip a leading fence, then raw_decode the FIRST JSON value and ignore the rest."""
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+    obj, _end = json.JSONDecoder().raw_decode(text)
+    return obj
+
+
 def _make_client(api_key: str):
     """Bounded Gemini client (15s timeout, 1 attempt) -- a slow/broken key must
     not add many seconds to an unattended run. Isolated so tests can stub it."""
@@ -171,7 +183,7 @@ def score_portfolio(client, flags, portfolio, funds, macro, sector_weights) -> d
             "thinking_config": {"thinking_budget": 0},
         },
     )
-    data = json.loads(resp.text)
+    data = _parse_json(resp.text)
     brief = data.get("brief") if isinstance(data.get("brief"), dict) else {}
     stocks = data.get("stocks") if isinstance(data.get("stocks"), dict) else {}
     clean = {}
