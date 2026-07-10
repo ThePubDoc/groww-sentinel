@@ -21,6 +21,7 @@ built today reuses all per-stock verdicts, so hourly reruns collapse to ~1 call/
 
 import json
 import logging
+import sys
 import warnings
 
 import yfinance as yf
@@ -268,11 +269,18 @@ def analyze(flags, portfolio, holdings, api_key, cache, today):
     macro = prices.get_macro()
     sector_weights = _sector_weights(flags, {s: d.get("sector") for s, d in funds.items()})
 
-    client = _make_client(api_key)
     try:
+        client = _make_client(api_key)
         result = score_portfolio(client, flags, portfolio, funds, macro, sector_weights)
-    except Exception:
-        return flags, None, cache  # analyst never breaks the run
+    except Exception as exc:
+        # Never break the run -- but fail LOUD (redacted): a silently-skipped
+        # analyst is indistinguishable from "nothing to add". Print the reason
+        # to stderr so a broken key/model/SDK surfaces in the run logs.
+        reason = str(exc)
+        if api_key:
+            reason = reason.replace(api_key, "[KEY]")
+        print(f"analyst: scoring skipped ({type(exc).__name__}): {reason[:300]}", file=sys.stderr)
+        return flags, None, cache
 
     scores = result["stocks"]
     brief = {**result["brief"], "date": today_str}
