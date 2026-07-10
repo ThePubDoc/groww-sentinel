@@ -441,14 +441,14 @@ intraday_pct = (last - prev_close) / prev_close if prev_close else None
 
 **If this table is empty:** N/A — see entries above; none of these block planning, but A1/A2 should be spot-verified against real data at implementation time per the project's own established "verify at impl, don't guess" pattern (already the disposition STACK.md took for this exact `average_price` question).
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Does `average_price` timing lag corporate-action settlement (T+N days)?**
+1. **Does `average_price` timing lag corporate-action settlement (T+N days)?** — RESOLVED: detector is timing-agnostic (fires whichever run first sees the new qty); no special handling, observe empirically.
    - What we know: Groww's help center describes the *eventual* adjusted state; brokerages commonly have a settlement delay between a corporate action's record date and when it's reflected in the demat/holdings API.
    - What's unclear: Whether there's a window where `quantity` still shows the pre-action count (not yet credited) while `average_price` is unchanged, versus both jumping together on the same run.
    - Recommendation: The qty-jump-plus-cost-flat detector is agnostic to *when* the jump happens — it fires whichever run first sees the new qty, regardless of settlement timing. No special handling needed; flag as something to observe empirically on the first real corporate action this account experiences.
 
-2. **Should the CORP-ACTION-detected run also suppress the digest's `pct` (gain/loss %) display for that symbol, not just the flag?**
+2. **Should the CORP-ACTION-detected run also suppress the digest's `pct` display?** — RESOLVED: yes, omit `pct` context like NO PRICE does (implemented in plan 02-01/02-03).
    - What we know: D-09 replaces the *flag*; the digest's `_context()` formatting in `notify.py` still shows `pct` for most flags.
    - What's unclear: Whether a CORP-ACTION line showing a wildly wrong `+/-N%` (computed against a stale-for-one-run avg_cost) undermines the "don't mis-flag" intent even if the *action* flag itself is safe.
    - Recommendation: Have `notify.py`'s CORP-ACTION line omit the `pct` context entirely (like NO PRICE already does) rather than showing a number known to be transiently wrong — a small addition to `_context()`'s existing flag-based branching, not a new mechanism.
