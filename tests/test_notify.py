@@ -154,6 +154,40 @@ def test_non_average_line_has_no_gate_reminder_text():
     assert "gate" not in text.lower()
 
 
+# --- format_digest: weekly block (PNL-05, D-08) ---
+
+
+def weekly(movers=None, value_change=0.023, flags_fired=4):
+    return {"movers": movers or [("TCS", 0.052), ("INFY", -0.031)],
+            "value_change": value_change, "flags_fired": flags_fired}
+
+
+def test_weekly_block_appended_at_bottom_when_present():
+    text = notify.format_digest([flag("TCS", "HOLD")], portfolio(), weekly())
+    assert "TCS +5.2%" in text and "INFY -3.1%" in text
+    assert "Value +2.3%" in text
+    assert "4 flags fired" in text
+    assert text.index("HOLDING") < text.index("WEEK")
+
+
+def test_weekly_block_appended_on_all_quiet_digest():
+    text = notify.format_digest([], portfolio(), weekly())
+    assert "all quiet" in text.lower()
+    assert "WEEK" in text and "TCS +5.2%" in text
+
+
+def test_weekly_block_omitted_when_none():
+    with_none = notify.format_digest([flag("TCS", "HOLD")], portfolio(), None)
+    without_arg = notify.format_digest([flag("TCS", "HOLD")], portfolio())
+    assert with_none == without_arg
+    assert "WEEK" not in with_none
+
+
+def test_weekly_block_shows_value_na_when_value_change_none():
+    text = notify.format_digest([], portfolio(), weekly(value_change=None))
+    assert "Value n/a" in text
+
+
 # --- send() (mocked HTTP, TEST-02) ---
 
 

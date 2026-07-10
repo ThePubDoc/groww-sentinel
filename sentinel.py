@@ -89,6 +89,23 @@ def _telemetry(snapshots: dict, today, total_value: float, merged: list[dict]) -
     return {"day_change_pct": day_change_pct, "trend": trend, "intraday_pct": intraday_pct}
 
 
+def _weekly_summary(snapshots: dict, today) -> dict | None:
+    """PNL-05: Friday-only weekly recap. Called with the freshly-written
+    snapshots (post write_snapshot) so today's own entry is always present
+    as the week's latest data point (D-08). None on any non-Friday, or on a
+    Friday with fewer than 2 in-week snapshot days (nothing to summarize)."""
+    if today.weekday() != 4:
+        return None
+    movers = state_mod.weekly_movers(snapshots, today)
+    if not movers:
+        return None
+    return {
+        "movers": movers,
+        "value_change": state_mod.week_value_change(snapshots, today),
+        "flags_fired": state_mod.flags_fired_this_week(snapshots, today),
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     dry_run = "--dry-run" in argv
@@ -151,7 +168,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         state_mod.save({"peaks": new_peaks, "snapshots": new_snapshots, "sentiment": new_sentiment})
 
-        message = notify.format_digest(flags, portfolio)
+        weekly = _weekly_summary(new_snapshots, today)
+        message = notify.format_digest(flags, portfolio, weekly)
 
         if dry_run:
             print(message)

@@ -101,6 +101,33 @@ def test_telemetry_never_raises_on_intraday_fetch_failure(monkeypatch):
     assert result["intraday_pct"] is None
 
 
+# --- _weekly_summary (PNL-05, D-08) ---
+
+
+def test_weekly_summary_none_on_non_friday():
+    snapshots = {
+        "2026-07-06": {"total_value": 1000.0, "flags_fired": 0, "symbols": {"A": {"price": 100.0, "value": 0}}},
+        "2026-07-09": {"total_value": 1100.0, "flags_fired": 0, "symbols": {"A": {"price": 110.0, "value": 0}}},
+    }
+    assert sentinel._weekly_summary(snapshots, date(2026, 7, 9)) is None  # Thursday
+
+
+def test_weekly_summary_none_on_friday_with_thin_week():
+    snapshots = {"2026-07-10": {"total_value": 1000.0, "flags_fired": 0, "symbols": {}}}
+    assert sentinel._weekly_summary(snapshots, date(2026, 7, 10)) is None
+
+
+def test_weekly_summary_populated_on_friday_with_week_history():
+    snapshots = {
+        "2026-07-06": {"total_value": 1000.0, "flags_fired": 2, "symbols": {"A": {"price": 100.0, "value": 0}}},
+        "2026-07-10": {"total_value": 1100.0, "flags_fired": 1, "symbols": {"A": {"price": 110.0, "value": 0}}},
+    }
+    result = sentinel._weekly_summary(snapshots, date(2026, 7, 10))  # Friday
+    assert result["movers"] == [("A", 0.1)]
+    assert round(result["value_change"], 4) == 0.1
+    assert result["flags_fired"] == 3
+
+
 def test_main_exits_2_and_prints_missing_secret_when_env_empty(monkeypatch, capsys):
     monkeypatch.setattr(sentinel.os, "environ", {})
     code = sentinel.main(["--dry-run"])

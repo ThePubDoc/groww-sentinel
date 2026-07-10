@@ -92,13 +92,27 @@ def _telemetry_line(portfolio: dict) -> str:
     return " · ".join(parts)
 
 
-def format_digest(flags: list[dict], portfolio: dict) -> str:
+def _weekly_block(weekly: dict) -> str:
+    """PNL-05: Friday-only weekly recap -- best/worst movers, week value
+    change, and flags-fired count. Rendered only when `weekly` is truthy
+    (caller already omits it on a thin week, D-08/T-02-04)."""
+    movers = " · ".join(f"{sym} {pct * 100:+.1f}%" for sym, pct in weekly["movers"])
+    value_change = weekly.get("value_change")
+    value_part = f"Value {value_change * 100:+.1f}%" if value_change is not None else "Value n/a"
+    return f"📅 WEEK\n{movers}\n{value_part} · {weekly['flags_fired']} flags fired"
+
+
+def format_digest(flags: list[dict], portfolio: dict, weekly: dict | None = None) -> str:
     """Pure: rules.evaluate()'s flags + a portfolio summary -> digest text.
 
     portfolio: {"total_value": float, "overall_pnl_pct": float, "date": date,
     "day_change_pct": float|None, "trend": {"days": int, "pct": float}|None,
     "intraday_pct": float|None}. The three telemetry keys are optional and
     default to None-shaped omission when absent.
+
+    weekly: optional {"movers": [(symbol, pct), ...], "value_change": float|None,
+    "flags_fired": int} (PNL-05) -- appended as the final section on Fridays
+    only; omitted entirely (no stray heading) when None.
     """
     header = (
         f"📊 Groww Sentinel · {portfolio['date'].strftime('%d %b')}\n"
@@ -124,10 +138,15 @@ def format_digest(flags: list[dict], portfolio: dict) -> str:
         steady = ", ".join(f"{f['symbol']} {f['pct'] * 100:+.0f}%" for f in holds)
         sections.append(f"😴 HOLDING ({len(holds)})\n{steady}")
 
+    weekly_section = _weekly_block(weekly) if weekly else None
+
     if not sections:
-        return f"{header}\n\n✅ All quiet — nothing to flag today, job ran fine."
+        digest = f"{header}\n\n✅ All quiet — nothing to flag today, job ran fine."
+        return f"{digest}\n\n\n{weekly_section}" if weekly_section else digest
+
     body = "✅ Nothing to act on.\n\n\n" if not non_hold else ""
-    return header + "\n\n\n" + body + "\n\n\n".join(sections)
+    digest = header + "\n\n\n" + body + "\n\n\n".join(sections)
+    return f"{digest}\n\n\n{weekly_section}" if weekly_section else digest
 
 
 def send(token: str, chat_id: str, text: str) -> None:
