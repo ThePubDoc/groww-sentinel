@@ -1,7 +1,7 @@
 """Mocked-I/O tests for prices.py -- yfinance boundary patched, zero live
 network calls (TEST-02)."""
 
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import numpy as np
 import pandas as pd
@@ -54,3 +54,37 @@ def test_empty_symbols_returns_empty_without_calling_yfinance():
     with patch("prices.yf.download") as mock_download:
         assert prices.get_prev_close([]) == {}
         mock_download.assert_not_called()
+
+
+# --- get_intraday (PNL-04, fast_info) ---
+
+
+def _fake_ticker(prev_close, last_price):
+    ticker = Mock()
+    ticker.fast_info = Mock(previous_close=prev_close, last_price=last_price)
+    return ticker
+
+
+@patch("prices.yf.Ticker")
+def test_get_intraday_returns_prev_close_and_last_price(mock_ticker_cls):
+    mock_ticker_cls.return_value = _fake_ticker(2800.0, 2850.0)
+
+    result = prices.get_intraday(["RELIANCE"])
+
+    assert result == {"RELIANCE": {"prev_close": 2800.0, "last_price": 2850.0}}
+    mock_ticker_cls.assert_called_once_with("RELIANCE.NS")
+
+
+@patch("prices.yf.Ticker")
+def test_get_intraday_maps_failing_symbol_to_none_values(mock_ticker_cls):
+    mock_ticker_cls.side_effect = Exception("no data")
+
+    result = prices.get_intraday(["CAPINVIT"])
+
+    assert result == {"CAPINVIT": {"prev_close": None, "last_price": None}}
+
+
+def test_get_intraday_empty_symbols_returns_empty_without_calling_yfinance():
+    with patch("prices.yf.Ticker") as mock_ticker_cls:
+        assert prices.get_intraday([]) == {}
+        mock_ticker_cls.assert_not_called()

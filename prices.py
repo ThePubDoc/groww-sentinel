@@ -48,3 +48,25 @@ def get_prev_close(symbols: list[str]) -> dict[str, float | None]:
         )
     close = data["Close"]
     return {s: _extract(close, f"{s}.NS") for s in symbols}
+
+
+def get_intraday(symbols: list[str]) -> dict[str, dict[str, float | None]]:
+    """Previous close + last price per NSE symbol via yfinance fast_info
+    (PNL-04) -- the purpose-built lightweight quote path, preferred over the
+    slower `.info` dict (02-RESEARCH State of the Art). A symbol whose lookup
+    fails or lacks an attribute degrades to {prev_close: None, last_price:
+    None}, never fatal -- additive helper, does not touch get_prev_close.
+    """
+    if not symbols:
+        return {}
+    result = {}
+    for s in symbols:
+        try:
+            fast_info = yf.Ticker(f"{s}.NS").fast_info
+            result[s] = {
+                "prev_close": fast_info.previous_close,
+                "last_price": fast_info.last_price,
+            }
+        except Exception:
+            result[s] = {"prev_close": None, "last_price": None}
+    return result
