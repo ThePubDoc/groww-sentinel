@@ -12,7 +12,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **DATA-01**: Authenticate to Groww TradeAPI headlessly using API key + TOTP generated at runtime from a stored seed (pyotp)
 - [x] **DATA-02**: Fetch holdings (trading symbol, quantity, average cost) via `growwapi`
 - [x] **DATA-03**: Fetch previous-close price for all held symbols from a free public quote source (yfinance/Yahoo `<symbol>.NS`, one batched call). *Amended Phase 1: Groww's live-data endpoints (`get_ltp`/`get_ohlc`/`get_quote`/historical) are all a paid tier — verified 403 on each; a pre-market digest only needs previous close. Unpriced symbols → NO PRICE flag, never fatal.*
-- [ ] **DATA-04**: Validate all 4 required secrets are present at startup; fail loud naming the missing one
+- [x] **DATA-04**: Validate all 4 required secrets are present at startup; fail loud naming the missing one
 - [x] **DATA-05**: Never persist the Groww access token to state.json — regenerate it each run (token expires daily)
 
 ### Rules Engine
@@ -42,9 +42,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Notification
 
-- [ ] **NOTIFY-01**: Format and send the daily digest to Telegram via the Bot API
-- [ ] **NOTIFY-02**: List only non-HOLD stocks, grouped into action vs opportunity
-- [ ] **NOTIFY-03**: Send a one-line "all quiet" heartbeat when nothing is flagged (proof the job ran)
+- [x] **NOTIFY-01**: Format and send the daily digest to Telegram via the Bot API
+- [x] **NOTIFY-02**: List only non-HOLD stocks, grouped into action vs opportunity
+- [x] **NOTIFY-03**: Send a one-line "all quiet" heartbeat when nothing is flagged (proof the job ran)
 - [x] **NOTIFY-04**: On auth/fetch failure, send a Telegram warning with the reason and exit non-zero — never silently skip a day
 - [x] **NOTIFY-05**: Independent dead-man's-switch so that message absence (cron miss / crash) is detectable, not mistaken for "all quiet"
 
@@ -99,7 +99,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DATA-01 | Phase 1 | Complete |
 | DATA-02 | Phase 1 | Complete |
 | DATA-03 | Phase 1 | Complete |
-| DATA-04 | Phase 1 | Pending |
+| DATA-04 | Phase 1 | Complete |
 | DATA-05 | Phase 1 | Complete |
 | RULES-01 | Phase 1 | Complete |
 | RULES-02 | Phase 1 | Complete |
@@ -107,9 +107,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | RULES-04 | Phase 1 | Complete |
 | RULES-05 | Phase 1 | Complete |
 | STATE-05 | Phase 1 | Complete |
-| NOTIFY-01 | Phase 1 | Pending |
-| NOTIFY-02 | Phase 1 | Pending |
-| NOTIFY-03 | Phase 1 | Pending |
+| NOTIFY-01 | Phase 1 | Complete |
+| NOTIFY-02 | Phase 1 | Complete |
+| NOTIFY-03 | Phase 1 | Complete |
 | TEST-01 | Phase 1 | Complete |
 | TEST-02 | Phase 1 | Complete |
 | STATE-01 | Phase 2 | Complete |
