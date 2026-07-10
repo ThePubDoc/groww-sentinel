@@ -23,9 +23,9 @@ jobs:
   sentinel:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -37,7 +37,7 @@ jobs:
       # prefix-matches the most recent saved entry. First run / evicted cache
       # (>7d idle) => no file => state.load() falls back to the empty shape.
       - name: Restore state
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: state.json
           key: groww-sentinel-state
@@ -60,7 +60,7 @@ jobs:
       # if: success() -- never persist state from a crashed run.
       - name: Save state
         if: success()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: state.json
           key: groww-sentinel-state-${{ github.run_id }}-${{ github.run_attempt }}
