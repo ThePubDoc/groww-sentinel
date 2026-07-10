@@ -117,3 +117,82 @@ def test_n_day_trend_caps_window_at_n_over_longer_history():
     trend = state.n_day_trend(snapshots, base + timedelta(days=7), n=5)
     assert trend["days"] == 5
     assert trend["baseline"] == 2.0  # 2026-07-03, the 5th-most-recent prior day
+
+
+# --- weekly helpers (PNL-05, D-08) ---
+
+
+def test_week_start_returns_monday_for_mid_week_date():
+    from datetime import date
+    assert state.week_start(date(2026, 7, 9)) == date(2026, 7, 6)  # Thu -> Mon
+
+
+def test_week_start_returns_monday_for_friday_date():
+    from datetime import date
+    assert state.week_start(date(2026, 7, 10)) == date(2026, 7, 6)  # Fri -> same Mon
+
+
+def test_weekly_movers_empty_on_thin_week():
+    from datetime import date
+    snapshots = {"2026-07-10": {"total_value": 1000.0, "flags_fired": 0,
+                                 "symbols": {"A": {"price": 10.0, "value": 100.0}}}}
+    assert state.weekly_movers(snapshots, date(2026, 7, 10)) == []
+
+
+def test_weekly_movers_ranks_best_and_worst_over_the_week():
+    from datetime import date
+    snapshots = {
+        "2026-07-06": {"total_value": 1000.0, "flags_fired": 0, "symbols": {
+            "A": {"price": 100.0, "value": 0}, "B": {"price": 100.0, "value": 0},
+            "C": {"price": 100.0, "value": 0},
+        }},
+        "2026-07-10": {"total_value": 1050.0, "flags_fired": 0, "symbols": {
+            "A": {"price": 120.0, "value": 0},  # +20%
+            "B": {"price": 100.0, "value": 0},  # 0%
+            "C": {"price": 80.0, "value": 0},   # -20%
+        }},
+    }
+    movers = state.weekly_movers(snapshots, date(2026, 7, 10), top_n=1)
+    assert movers[0] == ("A", 0.2)
+    assert movers[-1] == ("C", -0.2)
+
+
+def test_weekly_movers_ignores_a_symbol_missing_from_baseline():
+    from datetime import date
+    snapshots = {
+        "2026-07-06": {"total_value": 1000.0, "flags_fired": 0, "symbols": {
+            "A": {"price": 100.0, "value": 0},
+        }},
+        "2026-07-10": {"total_value": 1000.0, "flags_fired": 0, "symbols": {
+            "A": {"price": 110.0, "value": 0},
+            "NEW": {"price": 50.0, "value": 0},  # started mid-week -- no baseline, skipped
+        }},
+    }
+    movers = state.weekly_movers(snapshots, date(2026, 7, 10))
+    assert movers == [("A", 0.1)]
+
+
+def test_week_value_change_none_on_thin_week():
+    from datetime import date
+    snapshots = {"2026-07-10": {"total_value": 1000.0, "flags_fired": 0, "symbols": {}}}
+    assert state.week_value_change(snapshots, date(2026, 7, 10)) is None
+
+
+def test_week_value_change_computes_pct_over_the_week():
+    from datetime import date
+    snapshots = {
+        "2026-07-06": {"total_value": 1000.0, "flags_fired": 0, "symbols": {}},
+        "2026-07-10": {"total_value": 1100.0, "flags_fired": 0, "symbols": {}},
+    }
+    assert round(state.week_value_change(snapshots, date(2026, 7, 10)), 4) == 0.1
+
+
+def test_flags_fired_this_week_sums_in_week_snapshots_only():
+    from datetime import date
+    snapshots = {
+        "2026-06-29": {"total_value": 1.0, "flags_fired": 99, "symbols": {}},  # prior week
+        "2026-07-06": {"total_value": 1.0, "flags_fired": 2, "symbols": {}},
+        "2026-07-08": {"total_value": 1.0, "flags_fired": 1, "symbols": {}},
+        "2026-07-10": {"total_value": 1.0, "flags_fired": 3, "symbols": {}},
+    }
+    assert state.flags_fired_this_week(snapshots, date(2026, 7, 10)) == 6

@@ -12,6 +12,7 @@ Committing state.json back to the repo is Phase 3 (RUN-03) -- out of scope.
 import json
 import os
 import tempfile
+from datetime import timedelta
 
 _EMPTY_STATE = {"peaks": {}, "snapshots": {}, "sentiment": {}}
 
@@ -82,3 +83,53 @@ def n_day_trend(snapshots: dict, today, n: int = 5) -> dict | None:
         return None
     window = prior_dates[-n:]
     return {"days": len(window), "baseline": snapshots[window[0]]["total_value"]}
+
+
+def week_start(today):
+    """Monday of `today`'s ISO week (weekday() 0=Monday) -- stdlib date math only."""
+    return today - timedelta(days=today.weekday())
+
+
+def _week_dates(snapshots: dict, today) -> list[str]:
+    """Dated snapshot keys in [Monday-of-today, today], sorted ascending."""
+    monday, key = week_start(today).isoformat(), today.isoformat()
+    return sorted(d for d in snapshots if monday <= d <= key)
+
+
+def weekly_movers(snapshots: dict, today, top_n: int = 3) -> list[tuple[str, float]]:
+    """PNL-05: best+worst `top_n` symbols by % price change this week (baseline
+    = earliest in-week snapshot, end = most recent in-week snapshot). Returns
+    [] when fewer than 2 in-week dated snapshots exist (T-02-04 -- no spurious
+    0% list on a thin week)."""
+    week_dates = _week_dates(snapshots, today)
+    if len(week_dates) < 2:
+        return []
+    baseline_symbols = snapshots[week_dates[0]]["symbols"]
+    end_symbols = snapshots[week_dates[-1]]["symbols"]
+    pct_by_symbol = {}
+    for sym, end in end_symbols.items():
+        start_price = baseline_symbols.get(sym, {}).get("price")
+        end_price = end.get("price")
+        if start_price and end_price:
+            pct_by_symbol[sym] = (end_price - start_price) / start_price
+    ranked = sorted(pct_by_symbol.items(), key=lambda kv: kv[1], reverse=True)
+    if len(ranked) <= top_n:
+        return ranked
+    return ranked[:top_n] + ranked[-top_n:]
+
+
+def week_value_change(snapshots: dict, today) -> float | None:
+    """PNL-05: % change of the week's most recent total_value vs the earliest
+    in-week total_value; None when fewer than 2 in-week dated snapshots exist."""
+    week_dates = _week_dates(snapshots, today)
+    if len(week_dates) < 2:
+        return None
+    baseline = snapshots[week_dates[0]]["total_value"]
+    end = snapshots[week_dates[-1]]["total_value"]
+    return (end - baseline) / baseline if baseline else None
+
+
+def flags_fired_this_week(snapshots: dict, today) -> int:
+    """PNL-05: sum of stored daily flags_fired across in-week dated snapshots
+    only (T-02-04b -- excludes prior weeks)."""
+    return sum(snapshots[d]["flags_fired"] for d in _week_dates(snapshots, today))
