@@ -11,18 +11,20 @@ import requests
 
 TELEGRAM_MAX_LEN = 4096
 
-_ACTION_FLAGS = ("STOP", "TRIM", "TRAIL WATCH", "AVOID")
+_ACTION_FLAGS = ("STOP", "TRIM", "TRAIL WATCH", "AVOID", "CORP ACTION")
 _OPPORTUNITY_FLAGS = ("BOOK 50%", "BOOK 25%", "AVERAGE")
 
 _EMOJI = {
     "STOP": "🛑", "TRIM": "✂️", "TRAIL WATCH": "📉", "AVOID": "🚫",
     "BOOK 50%": "💰", "BOOK 25%": "💵", "AVERAGE": "➕", "NO PRICE": "❔",
+    "CORP ACTION": "⚠️",
 }
 _VERB = {
     "STOP": "cut it — sell all", "TRIM": "trim — sell",
     "BOOK 50%": "book half — sell", "BOOK 25%": "book 25% — sell",
     "AVERAGE": "average — buy", "TRAIL WATCH": "tighten stop / consider exit",
     "AVOID": "hold — don't average (bad news)", "NO PRICE": "price unavailable",
+    "CORP ACTION": "corporate action distorted avg cost — ignoring P&L flag",
 }
 _GATE_REMINDER = (
     "   ↳ 3-gate: results still good? fall market-wide (not company bad news)? "
@@ -42,7 +44,7 @@ def _context(f: dict) -> str:
         return f"{f['weight'] * 100:.0f}% of book"
     if f["flag"] == "TRAIL WATCH":
         return f"-{f['pct_below_peak'] * 100:.0f}% from peak"
-    if f["flag"] == "NO PRICE":
+    if f["flag"] in ("NO PRICE", "CORP ACTION"):
         return ""
     return f"{f['pct'] * 100:+.0f}%"
 

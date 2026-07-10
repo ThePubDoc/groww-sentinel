@@ -94,6 +94,15 @@ def test_no_price_surfaces_as_explicit_note_not_omission():
     assert "F" in text and "NO PRICE" in text
 
 
+def test_corp_action_renders_in_action_group_with_no_pct():
+    f = flag("X", "CORP ACTION")
+    f["pct"] = None
+    text = notify.format_digest([f], portfolio())
+    assert "X" in text
+    ctx_line = next(line for line in text.splitlines() if "X" in line)
+    assert "%" not in ctx_line
+
+
 # --- AVERAGE 3-gate reminder (RULES-05) ---
 
 
