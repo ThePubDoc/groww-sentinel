@@ -218,3 +218,24 @@ def test_send_truncates_long_text_on_newline_boundary(mock_post):
     sent_text = mock_post.call_args.kwargs["json"]["text"]
     assert len(sent_text) <= notify.TELEGRAM_MAX_LEN
     assert not sent_text.endswith("line 1999")
+
+
+# --- healthcheck_ping() (NOTIFY-05, D-08 dead-man's-switch heartbeat) ---
+
+
+@patch("notify.requests.get")
+def test_healthcheck_ping_is_noop_when_url_is_none(mock_get):
+    notify.healthcheck_ping(None)
+    mock_get.assert_not_called()
+
+
+@patch("notify.requests.get")
+def test_healthcheck_ping_issues_get_with_timeout(mock_get):
+    notify.healthcheck_ping("https://hc-ping.com/uuid")
+    mock_get.assert_called_once_with("https://hc-ping.com/uuid", timeout=10)
+
+
+@patch("notify.requests.get")
+def test_healthcheck_ping_swallows_request_exception(mock_get):
+    mock_get.side_effect = Exception("network down")
+    notify.healthcheck_ping("https://hc-ping.com/uuid")  # must not raise

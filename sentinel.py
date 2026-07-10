@@ -13,6 +13,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import broker
+import holidays
 import notify
 import prices
 import rules
@@ -34,6 +35,12 @@ def _redact(text: str, env: dict) -> str:
         if value:
             text = text.replace(value, "[REDACTED]")
     return text
+
+
+def _market_closed(today) -> bool:
+    """Weekend or NSE trading holiday (RUN-02/D-03). Injectable `today` keeps
+    this unit-testable without patching the clock."""
+    return today.weekday() >= 5 or holidays.is_trading_holiday(today)[0]
 
 
 def _best_effort_notify(env: dict, message: str) -> None:
@@ -120,12 +127,28 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+
+        # RUN-02/D-03: fail-loud (never silent-wrong) once the static calendar
+        # runs out of seeded years -- warn but keep going, don't early-exit.
+        is_holiday, warning = holidays.is_trading_holiday(today)
+        if warning:
+            print(warning, file=sys.stderr)
+            _best_effort_notify(env, warning)
+
+        # NOTIFY-05/D-08: a holiday/weekend is a clean "ran fine" outcome --
+        # ping the dead-man's-switch so the gap doesn't look like a missed run.
+        if _market_closed(today):
+            notify.healthcheck_ping(env.get("HEALTHCHECK_URL"))
+            print("Market closed -- skipping.")
+            return 0
+
         state = state_mod.load()
 
         client = broker.get_client(env["GROWW_API_KEY"], env["GROWW_TOTP_SEED"])
         holdings = broker.get_holdings(client)
         if not holdings:
             _best_effort_notify(env, "Groww Sentinel: no holdings, nothing to check today.")
+            notify.healthcheck_ping(env.get("HEALTHCHECK_URL"))
             print("No holdings.")
             return 0
 
@@ -173,9 +196,11 @@ def main(argv: list[str] | None = None) -> int:
 
         if dry_run:
             print(message)
+            notify.healthcheck_ping(env.get("HEALTHCHECK_URL"))
             return 0
 
         notify.send(env["TELEGRAM_TOKEN"], env["TELEGRAM_CHAT_ID"], message)
+        notify.healthcheck_ping(env.get("HEALTHCHECK_URL"))
         return 0
 
     except Exception as exc:

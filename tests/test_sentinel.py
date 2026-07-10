@@ -3,9 +3,20 @@ secrets validation (DATA-04/D-12), secret redaction (T-01-03a), and the
 portfolio P&L summary. No live broker/Telegram calls.
 """
 
-from datetime import date
+from datetime import date, datetime
 
 import sentinel
+
+
+def _freeze_today(monkeypatch, fixed_date):
+    """Monkeypatch sentinel.datetime.now() to a fixed IST datetime so
+    _market_closed/main() can be tested without depending on the wall clock."""
+    class _Frozen(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(fixed_date.year, fixed_date.month, fixed_date.day, 9, 0, tzinfo=tz)
+
+    monkeypatch.setattr(sentinel, "datetime", _Frozen)
 
 
 def test_validate_secrets_returns_missing_names_in_order():
@@ -178,3 +189,136 @@ def test_main_wires_real_state_load_evaluate_save(monkeypatch, capsys):
     assert saved["peaks"] == {"RELIANCE": {"peak": 3000.0, "qty": 10, "avg_cost": 2500.0}}
     today_key = list(saved["snapshots"].keys())[0]
     assert saved["snapshots"][today_key]["flags_fired"] == 0  # HOLD doesn't count
+
+
+# --- _market_closed / holiday+weekend early-exit + healthcheck ping (RUN-02/NOTIFY-05, D-03/D-08) ---
+
+
+def test_market_closed_true_for_seeded_2026_holiday():
+    assert sentinel._market_closed(date(2026, 1, 26)) is True  # Republic Day
+
+
+def test_market_closed_true_for_saturday():
+    assert sentinel._market_closed(date(2026, 7, 11)) is True  # Saturday
+
+
+def test_market_closed_false_for_ordinary_weekday():
+    assert sentinel._market_closed(date(2026, 7, 10)) is False  # Friday
+
+
+def _env_with_secrets(**extra):
+    env = {name: "x" for name in sentinel.REQUIRED_SECRETS}
+    env.update(extra)
+    return env
+
+
+def test_main_closed_day_returns_0_without_broker_call_and_pings_healthcheck(monkeypatch, capsys):
+    env = _env_with_secrets(HEALTHCHECK_URL="https://hc-ping.com/uuid")
+    monkeypatch.setattr(sentinel.os, "environ", env)
+    _freeze_today(monkeypatch, date(2026, 1, 26))  # Republic Day (holiday)
+
+    def boom(*a, **k):
+        raise AssertionError("broker.get_client must not be called on a closed day")
+
+    monkeypatch.setattr(sentinel.broker, "get_client", boom)
+
+    pings = []
+    monkeypatch.setattr(sentinel.notify, "healthcheck_ping", lambda url: pings.append(url))
+
+    code = sentinel.main(["--dry-run"])
+    capsys.readouterr()
+
+    assert code == 0
+    assert pings == ["https://hc-ping.com/uuid"]
+
+
+def test_main_pings_healthcheck_on_successful_dry_run(monkeypatch, capsys):
+    env = _env_with_secrets(HEALTHCHECK_URL="https://hc-ping.com/uuid")
+    monkeypatch.setattr(sentinel.os, "environ", env)
+    _freeze_today(monkeypatch, date(2026, 7, 10))  # ordinary Friday
+
+    monkeypatch.setattr(sentinel.state_mod, "load", lambda: {"peaks": {}, "snapshots": {}, "sentiment": {}})
+    monkeypatch.setattr(sentinel.state_mod, "save", lambda new_state: None)
+    monkeypatch.setattr(sentinel.broker, "get_client", lambda *a, **k: object())
+    monkeypatch.setattr(
+        sentinel.broker, "get_holdings",
+        lambda client: [{"trading_symbol": "RELIANCE", "quantity": 10, "average_price": 2500.0}],
+    )
+    monkeypatch.setattr(sentinel.prices, "get_prev_close", lambda symbols: {"RELIANCE": 2400.0})
+    monkeypatch.setattr(sentinel.prices, "get_intraday", lambda symbols: {})
+    monkeypatch.setattr(
+        sentinel.rules, "evaluate",
+        lambda holdings, state, today: (
+            [{"symbol": "RELIANCE", "flag": "HOLD", "pct": -0.04, "weight": 1.0,
+              "pct_below_peak": 0.2, "shares": 0, "value": 0.0, "reminder": False}],
+            {},
+        ),
+    )
+
+    pings = []
+    monkeypatch.setattr(sentinel.notify, "healthcheck_ping", lambda url: pings.append(url))
+
+    code = sentinel.main(["--dry-run"])
+    capsys.readouterr()
+
+    assert code == 0
+    assert pings == ["https://hc-ping.com/uuid"]
+
+
+def test_main_pings_healthcheck_on_no_holdings_exit(monkeypatch, capsys):
+    env = _env_with_secrets(HEALTHCHECK_URL="https://hc-ping.com/uuid")
+    monkeypatch.setattr(sentinel.os, "environ", env)
+    _freeze_today(monkeypatch, date(2026, 7, 10))  # ordinary Friday
+
+    monkeypatch.setattr(sentinel.state_mod, "load", lambda: {"peaks": {}, "snapshots": {}, "sentiment": {}})
+    monkeypatch.setattr(sentinel.broker, "get_client", lambda *a, **k: object())
+    monkeypatch.setattr(sentinel.broker, "get_holdings", lambda client: [])
+    monkeypatch.setattr(sentinel, "_best_effort_notify", lambda *a, **k: None)
+
+    pings = []
+    monkeypatch.setattr(sentinel.notify, "healthcheck_ping", lambda url: pings.append(url))
+
+    code = sentinel.main(["--dry-run"])
+    capsys.readouterr()
+
+    assert code == 0
+    assert pings == ["https://hc-ping.com/uuid"]
+
+
+def test_main_does_not_ping_healthcheck_on_exception_path(monkeypatch, capsys):
+    env = _env_with_secrets(HEALTHCHECK_URL="https://hc-ping.com/uuid")
+    monkeypatch.setattr(sentinel.os, "environ", env)
+    _freeze_today(monkeypatch, date(2026, 7, 10))  # ordinary Friday
+
+    def boom():
+        raise Exception("state load failed")
+
+    monkeypatch.setattr(sentinel.state_mod, "load", boom)
+    monkeypatch.setattr(sentinel, "_best_effort_notify", lambda *a, **k: None)
+
+    pings = []
+    monkeypatch.setattr(sentinel.notify, "healthcheck_ping", lambda url: pings.append(url))
+
+    code = sentinel.main(["--dry-run"])
+    capsys.readouterr()
+
+    assert code == 1
+    assert pings == []
+
+
+def test_main_past_seeded_year_warns_but_still_proceeds(monkeypatch, capsys):
+    env = _env_with_secrets()
+    monkeypatch.setattr(sentinel.os, "environ", env)
+    _freeze_today(monkeypatch, date(2028, 1, 1))  # past LAST_SEEDED_YEAR
+
+    monkeypatch.setattr(sentinel.state_mod, "load", lambda: {"peaks": {}, "snapshots": {}, "sentiment": {}})
+    monkeypatch.setattr(sentinel.broker, "get_client", lambda *a, **k: object())
+    monkeypatch.setattr(sentinel.broker, "get_holdings", lambda client: [])
+    monkeypatch.setattr(sentinel, "_best_effort_notify", lambda *a, **k: None)
+    monkeypatch.setattr(sentinel.notify, "healthcheck_ping", lambda url: None)
+
+    code = sentinel.main(["--dry-run"])
+    captured = capsys.readouterr()
+
+    assert code == 0  # did not early-exit on the warning alone
+    assert "2028" in captured.err

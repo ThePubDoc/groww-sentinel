@@ -149,6 +149,18 @@ def format_digest(flags: list[dict], portfolio: dict, weekly: dict | None = None
     return f"{digest}\n\n\n{weekly_section}" if weekly_section else digest
 
 
+def healthcheck_ping(url: str | None) -> None:
+    """Best-effort dead-man's-switch heartbeat (NOTIFY-05, D-08). No-op when
+    `url` is unset; a failed ping is swallowed -- a monitoring heartbeat must
+    never crash or fail the run."""
+    if not url:
+        return
+    try:
+        requests.get(url, timeout=10)
+    except Exception:
+        pass
+
+
 def send(token: str, chat_id: str, text: str) -> None:
     """POST plain text to Telegram sendMessage; raises on non-2xx (NOTIFY-01)."""
     if len(text) > TELEGRAM_MAX_LEN:
