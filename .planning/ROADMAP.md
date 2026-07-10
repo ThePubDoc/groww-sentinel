@@ -69,7 +69,7 @@ Plans:
   4. Re-running on the same day overwrites that day's snapshot without corrupting history (idempotent), state is rebuilt from current holdings each run, and stored snapshots stay bounded to recent entries.
   5. When a holding's average cost looks corporate-action-distorted, the digest emits a warning instead of a false STOP HIT / BOOK 50% flag.
 
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 
 Plans:
 **Wave 1**
@@ -78,7 +78,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 02-02-PLAN.md — `state.py` persistence (atomic load/save, date-keyed idempotent bounded snapshots) + same-day sentiment cache + sentinel wiring that makes peaks durable end-to-end (STATE-01, STATE-02, STATE-03, STATE-04)
+- [x] 02-02-PLAN.md — `state.py` persistence (atomic load/save, date-keyed idempotent bounded snapshots) + same-day sentiment cache + sentinel wiring that makes peaks durable end-to-end (STATE-01, STATE-02, STATE-03, STATE-04)
 
 **Wave 3** *(blocked on Wave 2)*
 
@@ -117,5 +117,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. End-to-End Morning Digest | 3/3 | Complete   | 2026-07-09 |
-| 2. Durable State & Portfolio Telemetry | 1/4 | In Progress|  |
+| 2. Durable State & Portfolio Telemetry | 2/4 | In Progress|  |
 | 3. Autonomous & Failure-Safe Runtime | 0/2 | Not started | - |

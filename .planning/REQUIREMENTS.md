@@ -29,7 +29,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **STATE-01**: Track per-symbol peak price keyed to the current holding period
 - [x] **STATE-02**: Rebuild `new_state` from current holdings each run, using prior state as a read-only lookup
 - [x] **STATE-03**: Prune state for symbols no longer held; reset a symbol's peak on exit and re-seed on rebuy
-- [ ] **STATE-04**: Store daily portfolio + per-symbol snapshots keyed by date; a same-day rerun overwrites (idempotent); history bounded to recent entries
+- [x] **STATE-04**: Store daily portfolio + per-symbol snapshots keyed by date; a same-day rerun overwrites (idempotent); history bounded to recent entries
 - [x] **STATE-05**: On first run (no state.json), seed peaks and snapshots from current LTP
 
 ### P&L Reporting
@@ -115,7 +115,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | STATE-01 | Phase 2 | Complete |
 | STATE-02 | Phase 2 | Complete |
 | STATE-03 | Phase 2 | Complete |
-| STATE-04 | Phase 2 | Pending |
+| STATE-04 | Phase 2 | Complete |
 | PNL-01 | Phase 2 | Pending |
 | PNL-02 | Phase 2 | Pending |
 | PNL-03 | Phase 2 | Pending |
