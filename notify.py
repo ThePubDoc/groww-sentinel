@@ -17,7 +17,7 @@ _OPPORTUNITY_FLAGS = ("BOOK 50%", "BOOK 25%", "AVERAGE")
 _EMOJI = {
     "STOP": "🛑", "TRIM": "✂️", "TRAIL WATCH": "📉", "AVOID": "🚫",
     "BOOK 50%": "💰", "BOOK 25%": "💵", "AVERAGE": "➕", "NO PRICE": "❔",
-    "CORP ACTION": "⚠️",
+    "CORP ACTION": "⚠️", "HOLD": "😴",
 }
 _VERB = {
     "STOP": "cut it — sell all", "TRIM": "trim — sell",
@@ -60,11 +60,33 @@ def _line(f: dict) -> str:
     if verb:
         parts.append(f"  ·  {verb}{qty}")
     line = "".join(parts)
-    if f.get("sentiment", {}).get("reason"):
-        line += f"\n   ↳ news: {f['sentiment']['reason']}"
+    override = f.get("analyst_override")
+    if override:
+        line += f"   (analyst · was {override['was']} · {override.get('confidence', '?')})"
+        line += f"\n   ↳ {override.get('thesis', '')}"
+        if override.get("key_risk"):
+            line += f" · risk: {override['key_risk']}"
+    suggestion = f.get("analyst_suggestion")
+    if suggestion:
+        line += (
+            f"\n   ↳ analyst ({suggestion.get('confidence', '?')}): "
+            f"{suggestion.get('flag', '')} — {suggestion.get('thesis', '')} [not applied]"
+        )
     if f.get("reminder"):
         line += "\n" + _GATE_REMINDER
     return line
+
+
+def _brief_block(brief: dict) -> str:
+    """🧠 ANALYST BRIEF: portfolio-level regime / stance / concentration read.
+    Rendered only when the analyst layer produced a brief (caller passes None
+    otherwise). Omits any field the model left blank."""
+    lines = ["🧠 ANALYST BRIEF"]
+    for key in ("regime", "stance", "concentration"):
+        val = brief.get(key)
+        if val:
+            lines.append(val)
+    return "\n".join(lines)
 
 
 def _telemetry_line(portfolio: dict) -> str:
@@ -102,7 +124,8 @@ def _weekly_block(weekly: dict) -> str:
     return f"📅 WEEK\n{movers}\n{value_part} · {weekly['flags_fired']} flags fired"
 
 
-def format_digest(flags: list[dict], portfolio: dict, weekly: dict | None = None) -> str:
+def format_digest(flags: list[dict], portfolio: dict, weekly: dict | None = None,
+                  brief: dict | None = None) -> str:
     """Pure: rules.evaluate()'s flags + a portfolio summary -> digest text.
 
     portfolio: {"total_value": float, "overall_pnl_pct": float, "date": date,
@@ -113,19 +136,30 @@ def format_digest(flags: list[dict], portfolio: dict, weekly: dict | None = None
     weekly: optional {"movers": [(symbol, pct), ...], "value_change": float|None,
     "flags_fired": int} (PNL-05) -- appended as the final section on Fridays
     only; omitted entirely (no stray heading) when None.
+
+    brief: optional analyst portfolio brief {"regime","stance","concentration"}
+    -- rendered as a 🧠 block right under the header; omitted entirely when None.
     """
     header = (
         f"📊 Groww Sentinel · {portfolio['date'].strftime('%d %b')}\n"
         f"💰 {_rupees(portfolio['total_value'])} · {_telemetry_line(portfolio)}"
     )
+    if brief:
+        header += "\n\n" + _brief_block(brief)
 
     non_hold = [f for f in flags if f["flag"] != "HOLD"]
-    holds = [f for f in flags if f["flag"] == "HOLD"]
+    # a HOLD the analyst had something to say about (override that landed on HOLD,
+    # or an unapplied suggestion) gets its own line, not the compact summary --
+    # otherwise a real analyst call would vanish into the steady list.
+    holds_noted = [f for f in flags if f["flag"] == "HOLD"
+                   and (f.get("analyst_override") or f.get("analyst_suggestion"))]
+    holds = [f for f in flags if f["flag"] == "HOLD" and f not in holds_noted]
 
     groups = [
         ("🔴 ACTION", [f for f in non_hold if f["flag"] in _ACTION_FLAGS]),
         ("🟢 OPPORTUNITY", [f for f in non_hold if f["flag"] in _OPPORTUNITY_FLAGS]),
         ("⚪ NO PRICE", [f for f in non_hold if f["flag"] == "NO PRICE"]),
+        ("🧠 ANALYST", holds_noted),
     ]
     sections = [
         title + "\n\n" + "\n\n".join(_line(f) for f in items)

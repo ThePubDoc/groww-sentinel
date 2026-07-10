@@ -61,7 +61,11 @@ Two design notes worth knowing:
 - **`TRIM` outranks `AVERAGE`** — an over-weight loser is trimmed, never averaged into. The "don't add to a heavy position" guard is free.
 - **`TRAIL WATCH` only fires on a genuine drawdown** — the tracked peak must be strictly above average cost (the stock was in profit, then fell off that high). A plain loser never triggers it. Durable peaks persist across runs via state, so this signal sharpens over time.
 
-An optional **news-sentiment layer** ([`sentiment.py`](sentiment.py), Google Gemini free tier) can only *block* a risky add — it turns an `AVERAGE` into 🚫 `AVOID` on bad news. It never invents a buy and never changes a sell. No API key → the layer is skipped, not failed.
+### Analyst overlay (optional)
+
+On top of the deterministic engine, an optional **senior-analyst layer** ([`analyst.py`](analyst.py), Google Gemini free tier) reasons over the **whole portfolio in one call** — per-stock news + fundamentals (P/E, sector, analyst target) + momentum, plus portfolio concentration and the market regime (NIFTY trend, India VIX). It produces a 🧠 **portfolio brief** and a per-stock verdict.
+
+The overlay may adjust a flag, under one guardrail: an override lands **only when the model is `high`-confidence**; `medium`/`low` disagreements are shown as *unapplied suggestions*. Every change is transparent — the digest shows `(analyst · was HOLD)` with a thesis, so you always see rules-vs-analyst. `rules.py` stays pure and authoritative; the analyst is an explicit, human-reviewed layer on top. No API key → skipped, not failed; any failure falls back to the pure flags.
 
 ## How it works
 
@@ -71,9 +75,9 @@ GitHub Actions cron (3×/weekday, IST)
         ├─ broker.py    → Groww TradeAPI (TOTP auth) → holdings + cost basis
         ├─ prices.py    → Yahoo Finance → previous close
         ├─ rules.py     → PURE engine → one flag + trade size per holding
-        ├─ sentiment.py → (optional) Gemini → block risky adds on bad news
+        ├─ analyst.py   → (optional) Gemini → portfolio brief + high-conf overrides
         ├─ notify.py    → format digest → Telegram sendMessage
-        └─ state.py     → peaks / snapshots / sentiment → Actions cache
+        └─ state.py     → peaks / snapshots / analyst cache → Actions cache
 ```
 
 | Module | Responsibility | Pure? |
@@ -83,7 +87,7 @@ GitHub Actions cron (3×/weekday, IST)
 | [`state.py`](state.py) | Durable peaks, daily snapshots, P&L trend math | partial |
 | [`broker.py`](broker.py) | Groww SDK boundary — returns plain dicts only | ❌ |
 | [`prices.py`](prices.py) | Previous-close fetch via yfinance | ❌ |
-| [`sentiment.py`](sentiment.py) | Optional Gemini news-sentiment gate | ❌ |
+| [`analyst.py`](analyst.py) | Optional Gemini portfolio-analyst overlay (brief + high-conf overrides) | partial |
 | [`holidays.py`](holidays.py) | Static NSE trading-holiday calendar | ✅ |
 | [`sentinel.py`](sentinel.py) | Orchestrator — wires the pipeline, one run to exit | ❌ |
 
@@ -101,7 +105,7 @@ The I/O boundaries are deliberately thin so the pure core stays testable without
    | `GROWW_TOTP_SEED` | ✅ | Groww dashboard → TradeAPI → TOTP seed |
    | `TELEGRAM_TOKEN` | ✅ | Telegram [@BotFather](https://t.me/BotFather) → `/newbot` |
    | `TELEGRAM_CHAT_ID` | ✅ | Message your bot, then `getUpdates` → `chat.id` (or [@userinfobot](https://t.me/userinfobot)) |
-   | `GEMINI_API_KEY` | optional | [aistudio.google.com](https://aistudio.google.com) — enables the sentiment layer |
+   | `GEMINI_API_KEY` | optional | [aistudio.google.com](https://aistudio.google.com) — enables the analyst overlay |
    | `HEALTHCHECK_URL` | recommended | [healthchecks.io](https://healthchecks.io) ping URL — dead-man's-switch (below) |
 
    > The Groww **TOTP auth flow** is the only unattended-friendly option — the API-key+secret flow needs daily manual re-approval on Groww's dashboard, which defeats a cron.

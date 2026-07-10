@@ -2,7 +2,7 @@
 
 Schema (D-03): {"peaks": {SYM: {peak, qty, avg_cost}},
 "snapshots": {"YYYY-MM-DD": {total_value, symbols, flags_fired}},
-"sentiment": {SYM: {date, label, reason}}}.
+"analyst": {"brief": {date, ...}, SYM: {date, flag, confidence, thesis, key_risk}}}.
 
 load()/save() are the only impure functions here; write_snapshot is a pure
 helper (no disk access) so it stays unit-testable without touching a file.
@@ -14,7 +14,7 @@ import os
 import tempfile
 from datetime import timedelta
 
-_EMPTY_STATE = {"peaks": {}, "snapshots": {}, "sentiment": {}}
+_EMPTY_STATE = {"peaks": {}, "snapshots": {}, "analyst": {}}
 
 
 def load(path: str = "state.json") -> dict:

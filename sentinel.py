@@ -1,8 +1,8 @@
 """Orchestrator: secrets -> config -> IST today -> broker fetch -> rules -> notify.
 
-Wires broker.py -> rules.py -> notify.py (DATA-04, D-09/10/11/12). state.json
-persists peaks/snapshots/sentiment across runs (STATE-01..04) -- loaded once
-near the top, saved atomically after building the digest. `--dry-run` prints
+Wires broker.py -> rules.py -> analyst.py -> notify.py (DATA-04, D-09/10/11/12).
+state.json persists peaks/snapshots/analyst across runs (STATE-01..04) -- loaded
+once near the top, saved atomically after building the digest. `--dry-run` prints
 the digest instead of sending it to Telegram. Runnable as `python -m sentinel`
 or `python sentinel.py`.
 """
@@ -12,12 +12,12 @@ import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import analyst
 import broker
 import holidays
 import notify
 import prices
 import rules
-import sentiment
 import state as state_mod
 
 REQUIRED_SECRETS = ["GROWW_API_KEY", "GROWW_TOTP_SEED", "TELEGRAM_TOKEN", "TELEGRAM_CHAT_ID"]
@@ -166,19 +166,23 @@ def main(argv: list[str] | None = None) -> int:
         ]
 
         flags, new_peaks = rules.evaluate(merged, state=state["peaks"], today=today)
-        # Optional news-sentiment layer: blocks risky adds (AVERAGE -> AVOID on
-        # bearish news). Best-effort -- never let it break the run; no key = skip.
-        new_sentiment = state["sentiment"]
-        try:
-            flags, new_sentiment = sentiment.adjust(flags, env.get("GEMINI_API_KEY"), state["sentiment"], today)
-        except Exception:
-            pass
         portfolio = _portfolio_summary(merged, today)
         # Telemetry (PNL-02..04) reads the LOADED snapshots -- BEFORE
         # write_snapshot below overwrites today's key (D-12/Pattern 3).
         portfolio.update(_telemetry(state["snapshots"], today, portfolio["total_value"], merged))
 
-        # Persist peaks/snapshot/sentiment BEFORE sending, using the LOADED
+        # Optional senior-analyst overlay: portfolio brief + high-confidence flag
+        # overrides. Best-effort -- never let it break the run; no key = skip.
+        brief = None
+        new_analyst = state.get("analyst", {})
+        try:
+            flags, brief, new_analyst = analyst.analyze(
+                flags, portfolio, merged, env.get("GEMINI_API_KEY"), state.get("analyst", {}), today
+            )
+        except Exception:
+            pass
+
+        # Persist peaks/snapshot/analyst BEFORE sending, using the LOADED
         # snapshots (not a post-write copy) -- plan 02-03's day-change lookup
         # depends on today's key being absent when it looks it up (D-02).
         per_symbol = {
@@ -189,10 +193,10 @@ def main(argv: list[str] | None = None) -> int:
         new_snapshots = state_mod.write_snapshot(
             state["snapshots"], today, portfolio["total_value"], per_symbol, flags_fired,
         )
-        state_mod.save({"peaks": new_peaks, "snapshots": new_snapshots, "sentiment": new_sentiment})
+        state_mod.save({"peaks": new_peaks, "snapshots": new_snapshots, "analyst": new_analyst})
 
         weekly = _weekly_summary(new_snapshots, today)
-        message = notify.format_digest(flags, portfolio, weekly)
+        message = notify.format_digest(flags, portfolio, weekly, brief)
 
         if dry_run:
             print(message)

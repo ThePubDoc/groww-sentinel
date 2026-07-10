@@ -112,6 +112,12 @@ def _shares(flag: str, qty: int, ltp: float, total_value: float) -> int:
     return max(1, int(round(n)))
 
 
+def size_position(flag: str, qty: int, ltp: float, total_value: float) -> int:
+    """Public sizing hook (whole shares for a flag) -- lets the analyst overlay
+    re-size a flag it overrides using the exact same rules math. Pure."""
+    return _shares(flag, qty, ltp, total_value)
+
+
 def evaluate(holdings: list, state: dict, today: date):
     """Map each holding to exactly one action flag + a trade size (RULES-02).
 

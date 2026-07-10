@@ -50,6 +50,29 @@ def get_prev_close(symbols: list[str]) -> dict[str, float | None]:
     return {s: _extract(close, f"{s}.NS") for s in symbols}
 
 
+def get_macro() -> dict[str, float | None]:
+    """Market-regime read for the analyst layer: NIFTY 50 5-day % trend and the
+    latest India VIX. Both best-effort -- either field degrades to None on any
+    yfinance hiccup, never fatal (the analyst prompt just omits a missing field)."""
+    macro: dict[str, float | None] = {"nifty_5d_pct": None, "vix": None}
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            data = yf.download("^NSEI", period="7d", progress=False, auto_adjust=False)
+        close = data["Close"].dropna()
+        if len(close) >= 2:
+            first, last = float(close.iloc[0]), float(close.iloc[-1])
+            macro["nifty_5d_pct"] = (last - first) / first if first else None
+    except Exception:
+        pass
+    try:
+        vix = yf.Ticker("^INDIAVIX").fast_info.last_price
+        macro["vix"] = float(vix) if vix else None
+    except Exception:
+        pass
+    return macro
+
+
 def get_intraday(symbols: list[str]) -> dict[str, dict[str, float | None]]:
     """Previous close + last price per NSE symbol via yfinance fast_info
     (PNL-04) -- the purpose-built lightweight quote path, preferred over the

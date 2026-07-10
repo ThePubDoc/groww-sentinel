@@ -239,3 +239,52 @@ def test_healthcheck_ping_issues_get_with_timeout(mock_get):
 def test_healthcheck_ping_swallows_request_exception(mock_get):
     mock_get.side_effect = Exception("network down")
     notify.healthcheck_ping("https://hc-ping.com/uuid")  # must not raise
+
+
+# --- format_digest: analyst brief + override/suggestion rendering ---
+
+
+def _analyst_flag(symbol, flag_name, **extra):
+    f = {"symbol": symbol, "flag": flag_name, "pct": -0.05, "weight": 0.05,
+         "pct_below_peak": 0.0, "shares": 0, "value": 0.0, "reminder": False}
+    f.update(extra)
+    return f
+
+
+def test_brief_block_rendered_when_present():
+    brief = {"regime": "calm", "stance": "selective", "concentration": "34% Financials"}
+    text = notify.format_digest([], portfolio(), None, brief)
+    assert "🧠 ANALYST BRIEF" in text
+    assert "calm" in text and "34% Financials" in text
+
+
+def test_no_brief_block_when_absent():
+    text = notify.format_digest([], portfolio())
+    assert "ANALYST BRIEF" not in text
+
+
+def test_override_line_shows_original_flag_and_thesis():
+    f = _analyst_flag("ACME", "STOP", shares=10, value=1000.0,
+                      analyst_override={"was": "HOLD", "confidence": "high",
+                                        "thesis": "guidance cut", "key_risk": "recovery"})
+    text = notify.format_digest([f], portfolio())
+    assert "was HOLD" in text and "guidance cut" in text and "risk: recovery" in text
+
+
+def test_suggestion_line_marked_not_applied():
+    f = _analyst_flag("ACME", "AVERAGE", shares=5, value=500.0,
+                      analyst_suggestion={"flag": "HOLD", "confidence": "medium",
+                                          "thesis": "derating not done"})
+    text = notify.format_digest([f], portfolio())
+    assert "[not applied]" in text and "derating not done" in text
+
+
+def test_annotated_hold_gets_own_section_not_steady_summary():
+    noted = _analyst_flag("ACME", "HOLD", pct=0.03,
+                          analyst_suggestion={"flag": "TRIM", "confidence": "low",
+                                              "thesis": "overweight sector"})
+    plain = _analyst_flag("STEADY", "HOLD", pct=0.01)
+    text = notify.format_digest([noted, plain], portfolio())
+    assert "🧠 ANALYST" in text
+    assert "overweight sector" in text          # noted HOLD renders its thesis
+    assert "😴 HOLDING (1)" in text             # only the plain HOLD in the summary

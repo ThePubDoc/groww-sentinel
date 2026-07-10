@@ -149,13 +149,13 @@ def test_main_exits_2_and_prints_missing_secret_when_env_empty(monkeypatch, caps
 
 def test_main_wires_real_state_load_evaluate_save(monkeypatch, capsys):
     """rules.evaluate must receive the LOADED peaks (not {}), and state.save
-    must persist {peaks, snapshots, sentiment} -- no live broker/Telegram/
+    must persist {peaks, snapshots, analyst} -- no live broker/Telegram/
     yfinance calls (Rule: sequential executor, mocked I/O boundaries only)."""
     env = {name: "x" for name in sentinel.REQUIRED_SECRETS}
     monkeypatch.setattr(sentinel.os, "environ", env)
 
     prior_peaks = {"RELIANCE": {"peak": 3000.0, "qty": 10, "avg_cost": 2500.0}}
-    loaded_state = {"peaks": prior_peaks, "snapshots": {}, "sentiment": {}}
+    loaded_state = {"peaks": prior_peaks, "snapshots": {}, "analyst": {}}
     monkeypatch.setattr(sentinel.state_mod, "load", lambda: loaded_state)
 
     saved = {}
@@ -185,7 +185,7 @@ def test_main_wires_real_state_load_evaluate_save(monkeypatch, capsys):
 
     assert code == 0
     assert received_peaks == prior_peaks  # rules.evaluate got the LOADED peaks, not {}
-    assert set(saved.keys()) == {"peaks", "snapshots", "sentiment"}
+    assert set(saved.keys()) == {"peaks", "snapshots", "analyst"}
     assert saved["peaks"] == {"RELIANCE": {"peak": 3000.0, "qty": 10, "avg_cost": 2500.0}}
     today_key = list(saved["snapshots"].keys())[0]
     assert saved["snapshots"][today_key]["flags_fired"] == 0  # HOLD doesn't count
@@ -237,7 +237,7 @@ def test_main_pings_healthcheck_on_successful_dry_run(monkeypatch, capsys):
     monkeypatch.setattr(sentinel.os, "environ", env)
     _freeze_today(monkeypatch, date(2026, 7, 10))  # ordinary Friday
 
-    monkeypatch.setattr(sentinel.state_mod, "load", lambda: {"peaks": {}, "snapshots": {}, "sentiment": {}})
+    monkeypatch.setattr(sentinel.state_mod, "load", lambda: {"peaks": {}, "snapshots": {}, "analyst": {}})
     monkeypatch.setattr(sentinel.state_mod, "save", lambda new_state: None)
     monkeypatch.setattr(sentinel.broker, "get_client", lambda *a, **k: object())
     monkeypatch.setattr(
@@ -270,7 +270,7 @@ def test_main_pings_healthcheck_on_no_holdings_exit(monkeypatch, capsys):
     monkeypatch.setattr(sentinel.os, "environ", env)
     _freeze_today(monkeypatch, date(2026, 7, 10))  # ordinary Friday
 
-    monkeypatch.setattr(sentinel.state_mod, "load", lambda: {"peaks": {}, "snapshots": {}, "sentiment": {}})
+    monkeypatch.setattr(sentinel.state_mod, "load", lambda: {"peaks": {}, "snapshots": {}, "analyst": {}})
     monkeypatch.setattr(sentinel.broker, "get_client", lambda *a, **k: object())
     monkeypatch.setattr(sentinel.broker, "get_holdings", lambda client: [])
     monkeypatch.setattr(sentinel, "_best_effort_notify", lambda *a, **k: None)
@@ -311,7 +311,7 @@ def test_main_past_seeded_year_warns_but_still_proceeds(monkeypatch, capsys):
     monkeypatch.setattr(sentinel.os, "environ", env)
     _freeze_today(monkeypatch, date(2028, 1, 1))  # past LAST_SEEDED_YEAR
 
-    monkeypatch.setattr(sentinel.state_mod, "load", lambda: {"peaks": {}, "snapshots": {}, "sentiment": {}})
+    monkeypatch.setattr(sentinel.state_mod, "load", lambda: {"peaks": {}, "snapshots": {}, "analyst": {}})
     monkeypatch.setattr(sentinel.broker, "get_client", lambda *a, **k: object())
     monkeypatch.setattr(sentinel.broker, "get_holdings", lambda client: [])
     monkeypatch.setattr(sentinel, "_best_effort_notify", lambda *a, **k: None)
