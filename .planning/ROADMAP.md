@@ -82,7 +82,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 02-03-PLAN.md — P&L telemetry in the digest header: overall unrealized (PNL-01), day change vs prior day's snapshot with off-by-one guard (PNL-02), N-day trend with graceful degradation (PNL-03), intraday % via yfinance fast_info (PNL-04)
+- [x] 02-03-PLAN.md — P&L telemetry in the digest header: overall unrealized (PNL-01), day change vs prior day's snapshot with off-by-one guard (PNL-02), N-day trend with graceful degradation (PNL-03), intraday % via yfinance fast_info (PNL-04)
 
 **Wave 4** *(blocked on Wave 3)*
 
@@ -117,5 +117,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. End-to-End Morning Digest | 3/3 | Complete   | 2026-07-09 |
-| 2. Durable State & Portfolio Telemetry | 2/4 | In Progress|  |
+| 2. Durable State & Portfolio Telemetry | 3/4 | In Progress|  |
 | 3. Autonomous & Failure-Safe Runtime | 0/2 | Not started | - |

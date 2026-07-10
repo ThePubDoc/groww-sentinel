@@ -2,18 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 02
-current_phase_name: Durable State & Portfolio Telemetry
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-07-10T07:01:49.029Z"
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-07-10T07:11:05.176Z"
 last_activity: 2026-07-10
-last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
   percent: 33
 ---
 
@@ -29,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 ## Current Position
 
 Phase: 02 (Durable State & Portfolio Telemetry) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
-Last activity: 2026-07-10 -- Phase 02 execution started
+Last activity: 2026-07-10
 
-Progress: [███████░░░] 67%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -59,6 +56,7 @@ Progress: [███████░░░] 67%
 | Phase 01 P02 | 25min | 2 tasks | 2 files |
 | Phase 02 P01 | 16min | 3 tasks | 4 files |
 | Phase 02 P02 | 4min | 3 tasks | 6 files |
+| Phase 02 P03 | 6min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -76,6 +74,9 @@ Recent decisions affecting current work:
 - [Phase 02]: Corp-action override only replaces STOP/BOOK/AVERAGE; TRIM and TRAIL WATCH still evaluate and take precedence over CORP_ACTION — Per D-09: weight-based and peak-based signals stay meaningful even when the P&L basis is distorted
 - [Phase ?]: sentiment.adjust error path carries the prior cache entry forward unchanged for failed symbols rather than dropping them
 - [Phase ?]: sentinel.py imports state.py as state_mod to avoid shadowing the loaded-state local variable
+- [Phase 02]: day_change/n_day_trend filter date < today.isoformat() explicitly (D-12), never sorted(keys)[-2]
+- [Phase 02]: get_intraday (fast_info) kept fully separate from get_prev_close (yf.download) -- different freshness contracts, PNL-04 vs PNL-01..03
+- [Phase 02]: Portfolio intraday % is value-weighted (qty*last vs qty*prev_close), matching how overall P&L is already weighted by position size
 
 ### Pending Todos
 
@@ -97,6 +98,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T07:01:42.048Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-07-10T07:10:46.469Z
+Stopped at: Completed 02-03-PLAN.md
 Resume file: None
