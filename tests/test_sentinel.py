@@ -153,6 +153,7 @@ def test_main_wires_real_state_load_evaluate_save(monkeypatch, capsys):
     yfinance calls (Rule: sequential executor, mocked I/O boundaries only)."""
     env = {name: "x" for name in sentinel.REQUIRED_SECRETS}
     monkeypatch.setattr(sentinel.os, "environ", env)
+    _freeze_today(monkeypatch, date(2026, 7, 10))  # ordinary Friday -- market open
 
     prior_peaks = {"RELIANCE": {"peak": 3000.0, "qty": 10, "avg_cost": 2500.0}}
     loaded_state = {"peaks": prior_peaks, "snapshots": {}, "analyst": {}}
