@@ -1,0 +1,60 @@
+name: Groww Sentinel
+
+on:
+  schedule:
+    # 03:30 UTC = 09:00 IST (pre-open), Mon-Fri
+    - cron: "30 3 * * 1-5"
+    # 07:00 UTC = 12:30 IST (midday), Mon-Fri
+    - cron: "0 7 * * 1-5"
+    # 10:00 UTC = 15:30 IST (close), Mon-Fri
+    - cron: "0 10 * * 1-5"
+  workflow_dispatch: {}
+
+concurrency:
+  group: groww-sentinel-run
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sentinel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        # If the org blocks the default GITHUB_TOKEN's contents:write (D-05),
+        # verify empirically on the first workflow_dispatch run: if no new
+        # state.json commit appears, add `token: ${{ secrets.STATE_PAT }}`
+        # here and re-run.
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Run Sentinel
+        run: python -m sentinel
+        env:
+          GROWW_API_KEY: ${{ secrets.GROWW_API_KEY }}
+          GROWW_TOTP_SEED: ${{ secrets.GROWW_TOTP_SEED }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL }}
+        # NOTE: exit code must NOT be suppressed here -- a non-zero exit
+        # has to fail the job (NOTIFY-04/D-07)
+
+      - name: Commit updated state.json
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update state.json [skip ci]"
+          file_pattern: state.json
+        # If the first workflow_dispatch run shows no new state.json commit,
+        # the org policy is blocking the default GITHUB_TOKEN (D-05). Fix:
+        #   1. Create a fine-grained PAT scoped to this repo only,
+        #      permission `contents: write` -- nothing broader.
+        #   2. Store it as the repo secret `STATE_PAT`.
+        #   3. Add `token: ${{ secrets.STATE_PAT }}` to the `actions/checkout`
+        #      step above, and re-run workflow_dispatch to confirm.
