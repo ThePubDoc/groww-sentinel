@@ -288,3 +288,39 @@ def test_annotated_hold_gets_own_section_not_steady_summary():
     assert "🧠 ANALYST" in text
     assert "overweight sector" in text          # noted HOLD renders its thesis
     assert "😴 HOLDING (1)" in text             # only the plain HOLD in the summary
+
+
+# --- format_digest: per-HOLD analyst take + overflow trimming ---
+
+
+def _hold(symbol, pct, thesis=None, key_risk=None):
+    f = {"symbol": symbol, "flag": "HOLD", "pct": pct, "weight": 0.03,
+         "pct_below_peak": 0.0, "shares": 0, "value": 0.0, "reminder": False}
+    if thesis is not None:
+        f["analyst_note"] = {"confidence": "medium", "thesis": thesis, "key_risk": key_risk or ""}
+    return f
+
+
+def test_hold_renders_analyst_thesis_and_risk():
+    h = _hold("RELIANCE", -0.10, thesis="refining margins soft", key_risk="crude spike")
+    text = notify.format_digest([h], portfolio())
+    assert "😴 HOLDING (1)" in text
+    assert "refining margins soft" in text and "risk: crude spike" in text
+
+
+def test_hold_without_note_falls_back_to_bare_line():
+    h = _hold("STEADY", 0.02)  # no analyst_note
+    text = notify.format_digest([h], portfolio())
+    assert "😴 STEADY" in text and "risk:" not in text
+
+
+def test_overflow_trims_least_notable_holds_to_compact_tail():
+    # many verbose holds -> can't all fit; biggest movers keep detail, rest compact
+    big = [_hold(f"BIGMOVER{i}", 0.90 - i * 0.01,
+                 thesis="x" * 60, key_risk="y" * 40) for i in range(40)]
+    small = _hold("TINY", 0.001, thesis="z" * 60, key_risk="w" * 40)
+    text = notify.format_digest(big + [small], portfolio())
+    assert len(text) <= notify.TELEGRAM_MAX_LEN            # never exceeds Telegram cap
+    assert "TINY +0%" in text                             # least-notable trimmed to compact
+    # a detailed line survived for a big mover
+    assert "😴 BIGMOVER0" in text

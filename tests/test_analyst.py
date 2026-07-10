@@ -22,11 +22,15 @@ def holding(symbol="RELIANCE", qty=10, ltp=2400.0):
 
 # --- apply_overrides (pure) -------------------------------------------------
 
-def test_agreeing_verdict_leaves_flag_untouched():
+def test_agreeing_verdict_keeps_flag_but_attaches_note():
     f = flag(f="HOLD")
-    scores = {"RELIANCE": {"flag": "HOLD", "confidence": "high", "thesis": "steady"}}
+    scores = {"RELIANCE": {"flag": "HOLD", "confidence": "high",
+                           "thesis": "steady compounder", "key_risk": "valuation"}}
     out = analyst.apply_overrides([f], scores, [holding()], 24000.0)
-    assert out[0] == f  # unchanged, no annotations
+    assert out[0]["flag"] == "HOLD"                       # flag unchanged
+    assert "analyst_override" not in out[0] and "analyst_suggestion" not in out[0]
+    assert out[0]["analyst_note"] == {"confidence": "high", "thesis": "steady compounder",
+                                      "key_risk": "valuation"}
 
 
 def test_high_confidence_disagreement_applies_and_resizes():

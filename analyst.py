@@ -208,7 +208,8 @@ def apply_overrides(flags: list[dict], scores: dict, holdings: list[dict],
     high-confidence guardrail.
 
     - NO PRICE / CORP ACTION: never touched.
-    - analyst agrees, or no verdict: flag unchanged.
+    - every scored stock carries `analyst_note` {confidence, thesis, key_risk} --
+      the analyst's take, rendered even when it agrees (so steady HOLDs get color).
     - disagrees & confidence == high: APPLY analyst flag, re-size via
       rules.size_position, tag `analyst_override`.
     - disagrees & medium/low: keep deterministic flag, attach `analyst_suggestion`
@@ -228,26 +229,21 @@ def apply_overrides(flags: list[dict], scores: dict, holdings: list[dict],
             "thesis": verdict.get("thesis", ""),
             "key_risk": verdict.get("key_risk", ""),
         }
+        g = dict(f)
+        g["analyst_note"] = note  # take on every scored stock, agree or not
 
-        if not a_flag or a_flag == f["flag"]:
-            out.append(f)
-            continue
-
-        if verdict.get("confidence") == HIGH:
-            h = by_symbol.get(f["symbol"], {})
-            qty, ltp = h.get("qty"), h.get("ltp")
-            shares = rules.size_position(a_flag, qty, ltp, total_value) if ltp else 0
-            g = dict(f)
-            g["flag"] = a_flag
-            g["shares"] = shares
-            g["value"] = shares * ltp if ltp else 0.0
-            g["reminder"] = a_flag == rules.AVERAGE
-            g["analyst_override"] = {"was": f["flag"], **note}
-            out.append(g)
-        else:
-            g = dict(f)
-            g["analyst_suggestion"] = {"flag": a_flag, **note}
-            out.append(g)
+        if a_flag and a_flag != f["flag"]:
+            if verdict.get("confidence") == HIGH:
+                h = by_symbol.get(f["symbol"], {})
+                qty, ltp = h.get("qty"), h.get("ltp")
+                g["flag"] = a_flag
+                g["shares"] = rules.size_position(a_flag, qty, ltp, total_value) if ltp else 0
+                g["value"] = g["shares"] * ltp if ltp else 0.0
+                g["reminder"] = a_flag == rules.AVERAGE
+                g["analyst_override"] = {"was": f["flag"], **note}
+            else:
+                g["analyst_suggestion"] = {"flag": a_flag, **note}
+        out.append(g)
     return out
 
 
@@ -270,6 +266,7 @@ def analyze(flags, portfolio, holdings, api_key, cache, today):
     if cached_brief and cached_brief.get("date") == today_str:
         scores = {f["symbol"]: cache[f["symbol"]] for f in scorable if f["symbol"] in cache}
         out = apply_overrides(flags, scores, holdings, total_value)
+        print(f"analyst: brief ok (cached), {len(scores)} scored", file=sys.stderr)
         return out, cached_brief, cache
 
     funds = {}

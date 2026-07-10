@@ -77,6 +77,48 @@ def _line(f: dict) -> str:
     return line
 
 
+def _hold_line(f: dict) -> str:
+    """Detailed steady-holding line: symbol + P&L%, plus the analyst's take
+    (thesis · key risk) when present. Falls back to the bare head line if the
+    analyst had no note for it."""
+    head = f"😴 {f['symbol']}  {f['pct'] * 100:+.0f}%"
+    note = f.get("analyst_note") or {}
+    thesis = note.get("thesis")
+    if not thesis:
+        return head
+    line = f"{head}\n   ↳ {thesis}"
+    if note.get("key_risk"):
+        line += f" · risk: {note['key_risk']}"
+    return line
+
+
+def _holds_section(holds: list[dict], budget: int) -> str:
+    """😴 HOLDING block. The most-notable holdings (biggest absolute move) get
+    full analyst detail; the rest render as a compact 'SYM +3%' tail. The number
+    given detail is the largest that keeps the WHOLE section within `budget`, so
+    the message never has to be hard-truncated by send() (NOTIFY-01). Section
+    length is monotonic in that count, so a single forward scan finds the max."""
+    title = f"😴 HOLDING ({len(holds)})"
+    ranked = sorted(holds, key=lambda f: abs(f.get("pct") or 0.0), reverse=True)
+
+    def _compact(f):
+        return f"{f['symbol']} {f['pct'] * 100:+.0f}%"
+
+    def _render(n_detail):
+        detailed = "\n\n".join(_hold_line(f) for f in ranked[:n_detail])
+        compact = ", ".join(_compact(f) for f in ranked[n_detail:])
+        body = "\n\n".join(p for p in (detailed, compact) if p)
+        return f"{title}\n{body}" if body else title
+
+    best = 0
+    for n in range(len(ranked) + 1):
+        if len(_render(n)) <= budget:
+            best = n
+        else:
+            break
+    return _render(best)
+
+
 def _brief_block(brief: dict) -> str:
     """🧠 ANALYST BRIEF: portfolio-level regime / stance / concentration read.
     Rendered only when the analyst layer produced a brief (caller passes None
@@ -167,20 +209,22 @@ def format_digest(flags: list[dict], portfolio: dict, weekly: dict | None = None
         if items
     ]
 
-    # compact one-block HOLD summary -- proof every steady holding was checked
-    if holds:
-        steady = ", ".join(f"{f['symbol']} {f['pct'] * 100:+.0f}%" for f in holds)
-        sections.append(f"😴 HOLDING ({len(holds)})\n{steady}")
-
     weekly_section = _weekly_block(weekly) if weekly else None
 
-    if not sections:
+    if not sections and not holds:
         digest = f"{header}\n\n✅ All quiet — nothing to flag today, job ran fine."
         return f"{digest}\n\n\n{weekly_section}" if weekly_section else digest
 
+    # Assemble everything except the steady-HOLD block first, then fit the HOLD
+    # detail (analyst take per holding can be long) into the remaining Telegram
+    # budget -- trimming the least-notable holdings rather than tail-truncating.
     body = "✅ Nothing to act on.\n\n\n" if not non_hold else ""
-    digest = header + "\n\n\n" + body + "\n\n\n".join(sections)
-    return f"{digest}\n\n\n{weekly_section}" if weekly_section else digest
+    core = header + "\n\n\n" + body + "\n\n\n".join(sections)
+    if holds:
+        reserved = len(core) + (len(weekly_section) + 3 if weekly_section else 0)
+        holds_section = _holds_section(holds, max(0, TELEGRAM_MAX_LEN - reserved - 6))
+        core += ("\n\n\n" if sections or body else "") + holds_section
+    return f"{core}\n\n\n{weekly_section}" if weekly_section else core
 
 
 def healthcheck_ping(url: str | None) -> None:
