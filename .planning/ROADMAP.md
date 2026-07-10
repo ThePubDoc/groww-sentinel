@@ -69,12 +69,24 @@ Plans:
   4. Re-running on the same day overwrites that day's snapshot without corrupting history (idempotent), state is rebuilt from current holdings each run, and stored snapshots stay bounded to recent entries.
   5. When a holding's average cost looks corporate-action-distorted, the digest emits a warning instead of a false STOP HIT / BOOK 50% flag.
 
-**Plans**: 2 plans
+**Plans**: 4 plans
 
 Plans:
+**Wave 1**
 
-- [ ] 02-01: `state.py` — rebuild-not-merge state (STATE-02), per-holding-period peak with reset-on-exit / re-seed-on-rebuy (STATE-01, STATE-03), date-keyed bounded snapshots with idempotent same-day overwrite (STATE-04), corporate-action `average_price` verification + warning path (RULES-06)
-- [ ] 02-02: P&L reporting — overall unrealized (PNL-01), day delta vs prior snapshot (PNL-02), N-day trend (PNL-03), intraday % when prev close exposed (PNL-04), Friday weekly summary block (PNL-05)
+- [ ] 02-01-PLAN.md — Pure rules: corp-action safety + durable-peak mechanics — `_detect_corp_action` (qty jump + capital flat), CORP ACTION flag replacing false STOP/BOOK/AVERAGE, peak rescale, qty/avg_cost carry-forward + prune, and CORP ACTION digest rendering (RULES-06, STATE-01, STATE-02, STATE-03)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 02-02-PLAN.md — `state.py` persistence (atomic load/save, date-keyed idempotent bounded snapshots) + same-day sentiment cache + sentinel wiring that makes peaks durable end-to-end (STATE-01, STATE-02, STATE-03, STATE-04)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 02-03-PLAN.md — P&L telemetry in the digest header: overall unrealized (PNL-01), day change vs prior day's snapshot with off-by-one guard (PNL-02), N-day trend with graceful degradation (PNL-03), intraday % via yfinance fast_info (PNL-04)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 02-04-PLAN.md — Friday-only weekly summary block: best/worst movers, week value change, flags-fired count from stored snapshots (PNL-05)
 
 ### Phase 3: Autonomous & Failure-Safe Runtime
 
@@ -105,5 +117,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. End-to-End Morning Digest | 3/3 | Complete   | 2026-07-09 |
-| 2. Durable State & Portfolio Telemetry | 0/2 | Not started | - |
+| 2. Durable State & Portfolio Telemetry | 0/4 | Not started | - |
 | 3. Autonomous & Failure-Safe Runtime | 0/2 | Not started | - |
