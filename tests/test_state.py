@@ -62,3 +62,58 @@ def test_write_snapshot_prunes_to_keep_n():
     assert len(snapshots) == 10
     assert list(snapshots.keys())[0] == "2026-07-06"  # oldest 5 pruned (days 0-4)
     assert list(snapshots.keys())[-1] == "2026-07-15"
+
+
+# --- day_change / n_day_trend (PNL-02, PNL-03, D-12) ---
+
+
+def test_day_change_picks_strictly_before_today_entry():
+    from datetime import date
+    snapshots = {
+        "2026-07-08": {"total_value": 900.0, "symbols": {}, "flags_fired": 0},
+        "2026-07-09": {"total_value": 1000.0, "symbols": {}, "flags_fired": 0},
+    }
+    assert state.day_change(snapshots, date(2026, 7, 10)) == 1000.0
+
+
+def test_day_change_returns_none_with_only_todays_key():
+    from datetime import date
+    snapshots = {"2026-07-10": {"total_value": 1000.0, "symbols": {}, "flags_fired": 0}}
+    assert state.day_change(snapshots, date(2026, 7, 10)) is None
+
+
+def test_day_change_still_returns_yesterday_when_today_already_in_snapshots():
+    """D-12 regression: 2nd+ run of the day must never diff against itself."""
+    from datetime import date
+    snapshots = {
+        "2026-07-09": {"total_value": 1000.0, "symbols": {}, "flags_fired": 0},
+        "2026-07-10": {"total_value": 1050.0, "symbols": {}, "flags_fired": 1},  # earlier run today
+    }
+    assert state.day_change(snapshots, date(2026, 7, 10)) == 1000.0
+
+
+def test_n_day_trend_none_with_no_prior_day():
+    from datetime import date
+    assert state.n_day_trend({}, date(2026, 7, 10)) is None
+
+
+def test_n_day_trend_reports_actual_window_length_under_n():
+    from datetime import date
+    snapshots = {
+        "2026-07-08": {"total_value": 900.0, "symbols": {}, "flags_fired": 0},
+        "2026-07-09": {"total_value": 950.0, "symbols": {}, "flags_fired": 0},
+    }
+    trend = state.n_day_trend(snapshots, date(2026, 7, 10), n=5)
+    assert trend == {"days": 2, "baseline": 900.0}
+
+
+def test_n_day_trend_caps_window_at_n_over_longer_history():
+    from datetime import date, timedelta
+    base = date(2026, 7, 1)
+    snapshots = {}
+    for i in range(7):
+        d = base + timedelta(days=i)
+        snapshots[d.isoformat()] = {"total_value": float(i), "symbols": {}, "flags_fired": 0}
+    trend = state.n_day_trend(snapshots, base + timedelta(days=7), n=5)
+    assert trend["days"] == 5
+    assert trend["baseline"] == 2.0  # 2026-07-03, the 5th-most-recent prior day
