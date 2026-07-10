@@ -1,9 +1,10 @@
 """Orchestrator: secrets -> config -> IST today -> broker fetch -> rules -> notify.
 
-Wires broker.py -> rules.py -> notify.py (DATA-04, D-09/10/11/12). Phase 1 has
-no durable state.json -- state is always {} (STATE-05 first-run peak seed only).
-`--dry-run` prints the digest instead of sending it to Telegram. Runnable as
-`python -m sentinel` or `python sentinel.py`.
+Wires broker.py -> rules.py -> notify.py (DATA-04, D-09/10/11/12). state.json
+persists peaks/snapshots/sentiment across runs (STATE-01..04) -- loaded once
+near the top, saved atomically after building the digest. `--dry-run` prints
+the digest instead of sending it to Telegram. Runnable as `python -m sentinel`
+or `python sentinel.py`.
 """
 
 import os
@@ -16,6 +17,7 @@ import notify
 import prices
 import rules
 import sentiment
+import state as state_mod
 
 REQUIRED_SECRETS = ["GROWW_API_KEY", "GROWW_TOTP_SEED", "TELEGRAM_TOKEN", "TELEGRAM_CHAT_ID"]
 
@@ -67,6 +69,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+        state = state_mod.load()
 
         client = broker.get_client(env["GROWW_API_KEY"], env["GROWW_TOTP_SEED"])
         holdings = broker.get_holdings(client)
@@ -88,14 +91,29 @@ def main(argv: list[str] | None = None) -> int:
             for h in holdings
         ]
 
-        flags, _new_state = rules.evaluate(merged, state={}, today=today)
+        flags, new_peaks = rules.evaluate(merged, state=state["peaks"], today=today)
         # Optional news-sentiment layer: blocks risky adds (AVERAGE -> AVOID on
         # bearish news). Best-effort -- never let it break the run; no key = skip.
+        new_sentiment = state["sentiment"]
         try:
-            flags = sentiment.adjust(flags, env.get("GEMINI_API_KEY"))
+            flags, new_sentiment = sentiment.adjust(flags, env.get("GEMINI_API_KEY"), state["sentiment"], today)
         except Exception:
             pass
         portfolio = _portfolio_summary(merged, today)
+
+        # Persist peaks/snapshot/sentiment BEFORE sending, using the LOADED
+        # snapshots (not a post-write copy) -- plan 02-03's day-change lookup
+        # depends on today's key being absent when it looks it up (D-02).
+        per_symbol = {
+            h["symbol"]: {"price": h["ltp"], "value": h["qty"] * h["ltp"]}
+            for h in merged if h["ltp"] is not None
+        }
+        flags_fired = sum(1 for f in flags if f["flag"] not in ("HOLD", "NO PRICE"))
+        new_snapshots = state_mod.write_snapshot(
+            state["snapshots"], today, portfolio["total_value"], per_symbol, flags_fired,
+        )
+        state_mod.save({"peaks": new_peaks, "snapshots": new_snapshots, "sentiment": new_sentiment})
+
         message = notify.format_digest(flags, portfolio)
 
         if dry_run:
