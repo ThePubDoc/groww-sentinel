@@ -85,6 +85,23 @@ opportunity, and I never have to open the app to check.
 | TRAIL WATCH only on peak > avg_cost | A plain loser's seeded peak = cost, so "below peak" == the loss — degenerate. Restrict TRAIL to genuine drawdowns from a real high; losers resolve to AVERAGE/STOP. | ✓ Good |
 | Prices from free external source (yfinance/Yahoo `.NS`), not Groww | Groww's LTP/OHLC/quote/historical are all a **paid** Live Data tier (verified 403 on every one); a pre-market digest only needs previous close, which Yahoo gives free. Groww account untouched (holdings stay official). | ✓ Good — verified live Phase 1 |
 
+## Current State
+
+**v1.0 shipped 2026-07-10 — live and autonomous.** Deployed on GitHub Actions
+(`ThePubDoc/groww-sentinel`, private), running 3×/weekday: authenticates to Groww,
+fetches holdings + yfinance previous-close prices, evaluates the uniform P&L action
+ladder (with per-stock share quantities), optionally blocks risky adds on bearish
+Gemini-scored news, sends a Telegram digest, and commits `state.json` back. Durable
+peaks drive TRAIL WATCH; P&L overall/day/5-day trend + Friday weekly; corporate-action
+guard; healthchecks.io dead-man's-switch armed. 3 phases, 33 requirements, 130 tests,
+verified with a live green run. Archive: `milestones/v1.0-ROADMAP.md`.
+
+## Next Milestone Goals
+
+Candidates (see ROADMAP.md Backlog): flag-fatigue dampening (PNL-06), a sturdier free
+news source than yfinance, `pandas_market_calendars` holidays (RUN-06), WhatsApp channel
+(NOTIFY-06). Run `/gsd-new-milestone` to scope v1.1/v2.
+
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
@@ -103,4 +120,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-09 after initialization*
+*Last updated: 2026-07-10 after v1.0 milestone completion*

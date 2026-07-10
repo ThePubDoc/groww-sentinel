@@ -1,126 +1,16 @@
 # Roadmap: Groww Sentinel
 
-## Overview
+## Shipped Milestones
 
-Groww Sentinel grows from a manually-triggered walking skeleton into a self-running,
-failure-safe morning advisor. Phase 1 ships the whole value loop end-to-end — auth,
-fetch holdings + live prices, evaluate the pure rules engine, and send a real Telegram
-flag digest — so the tool is usable from day one. Phase 2 gives that digest a memory:
-durable price peaks, a correct peak lifecycle, and portfolio telemetry (P&L, trend, Friday
-weekly summary). Phase 3 takes the human out of the loop — GitHub Actions cron, holiday
-skipping, automatic state persistence — and hardens it so a failure or missed run is loud,
-never mistaken for "all quiet".
+- **v1.0 — Groww Sentinel** (shipped 2026-07-10) — autonomous 3×/weekday Telegram advisor over live Groww holdings: unified P&L action ladder with share quantities, durable state (peaks, P&L trend, Friday weekly), optional news-sentiment, GitHub Actions cron + holiday skip + fail-loud + dead-man's-switch. 3 phases, 10 plans, 130 tests, verified live. → [`milestones/v1.0-ROADMAP.md`](milestones/v1.0-ROADMAP.md) · [`milestones/v1.0-REQUIREMENTS.md`](milestones/v1.0-REQUIREMENTS.md)
 
-## Phases
+## Backlog (next milestone candidates)
 
-**Phase Numbering:**
+- **PNL-06** — dampen a flag that stays open for many consecutive days (repeat-alert fatigue)
+- **RUN-06** — upgrade holiday source to `pandas_market_calendars` (XNSE) after validating vs NSE's list
+- **NOTIFY-06** — add WhatsApp as a second channel (notify layer already swappable)
+- Sturdier free news source than yfinance (Google News RSS) for more reliable sentiment
+- Maintenance: bump GitHub Actions (`@v5`→`@v7`, Node 20→24); add NSE 2027 holidays when published
 
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
-
-Decimal phases appear between their surrounding integers in numeric order.
-
-- [x] **Phase 1: End-to-End Morning Digest** - Manually-triggered run fetches real holdings + prices, applies the rules engine, and sends a real Telegram flag digest (completed 2026-07-09)
-- [x] **Phase 2: Durable State & Portfolio Telemetry** - Peaks and portfolio value persist across runs; digest carries P&L, N-day trend, and Friday weekly summary (completed 2026-07-10)
-- [x] **Phase 3: Autonomous & Failure-Safe Runtime** - Runs itself every weekday on GitHub Actions, skips holidays, persists state, and makes failures/missed runs detectable (completed 2026-07-10)
-
-## Phase Details
-
-### Phase 1: End-to-End Morning Digest
-
-**Goal**: A manually-triggered run authenticates to Groww, fetches real holdings + live prices, evaluates the pure rules engine, and sends a real per-stock flag digest to Telegram.
-**Mode:** mvp
-**Depends on**: Nothing (first phase)
-**Requirements**: DATA-01, DATA-02, DATA-03, DATA-04, DATA-05, RULES-01, RULES-02, RULES-03, RULES-04, RULES-05, STATE-05, NOTIFY-01, NOTIFY-02, NOTIFY-03, TEST-01, TEST-02
-**Success Criteria** (what must be TRUE):
-
-  1. Running the tool sends a real Telegram message listing current non-HOLD holdings with their flag (AVG CANDIDATE / TRIM / BOOK 50% / STOP HIT / TRAIL WATCH / UNTAGGED), grouped action vs opportunity — or a single "all quiet" line when nothing fires.
-  2. Every held stock resolves to exactly one flag; a symbol missing from `config.yaml` shows UNTAGGED, never a guessed bucket.
-  3. Every AVG CANDIDATE line carries the 3-gate manual-check reminder.
-  4. A run started with any of the 4 secrets missing stops immediately and names the missing one, and the Groww access token is never written to disk.
-  5. `rules.py` is a pure no-I/O function with passing unit tests covering every flag path and each threshold boundary; `broker.py` and `notify.py` have mocked-I/O tests that make no live calls.
-
-**Plans**: 3 plans
-
-Plans:
-**Wave 1**
-
-- [x] 01-01-PLAN.md — Pure `rules.py` + full boundary tests: ordered-resolver `evaluate(holdings, config, state, today)`, 7 flags, named threshold constants (D-01), AVG 3-tier + weight gate, UNTAGGED, first-run peak seed (STATE-05, TEST-01, RULES-01..05) + pinned `requirements.txt`
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 01-02-PLAN.md — `broker.py`: headless TOTP auth (pyotp, no token persistence), `get_holdings`, single batched `get_ltp`; mocked-boundary tests, no live calls (DATA-01/02/03/05, TEST-02)
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
-- [x] 01-03-PLAN.md — `notify.py` (grouped non-HOLD digest + all-quiet + AVG reminder, plain-text send) + `sentinel.py` orchestrator (secret validation, `--dry-run`, IST today, state={}) + `config.yaml`/`.gitignore`; walking-skeleton end-to-end human-verify (DATA-04, NOTIFY-01/02/03, TEST-02)
-
-### Phase 2: Durable State & Portfolio Telemetry
-
-**Goal**: The digest remembers price peaks and portfolio value across runs and reports overall P&L, day change, an N-day trend, and a Friday weekly summary — with corporate-action-distorted cost flagged rather than mis-flagged.
-**Mode:** mvp
-**Depends on**: Phase 1
-**Requirements**: STATE-01, STATE-02, STATE-03, STATE-04, PNL-01, PNL-02, PNL-03, PNL-04, PNL-05, RULES-06
-**Success Criteria** (what must be TRUE):
-
-  1. Across consecutive runs each symbol's peak persists and drives TRAIL WATCH / STOP HIT; selling a stock resets its peak and rebuying re-seeds it, so a permanently-down stock stops generating stale-peak noise.
-  2. The digest reports overall unrealized P&L vs cost, the day's change vs the prior run's stored portfolio value, and an N-day portfolio direction; an intraday % appears when the price source exposes previous close.
-  3. Friday's digest appends a weekly summary block (best/worst movers, week value change, flags-fired count).
-  4. Re-running on the same day overwrites that day's snapshot without corrupting history (idempotent), state is rebuilt from current holdings each run, and stored snapshots stay bounded to recent entries.
-  5. When a holding's average cost looks corporate-action-distorted, the digest emits a warning instead of a false STOP HIT / BOOK 50% flag.
-
-**Plans**: 2/4 plans executed
-
-Plans:
-**Wave 1**
-
-- [x] 02-01-PLAN.md — Pure rules: corp-action safety + durable-peak mechanics — `_detect_corp_action` (qty jump + capital flat), CORP ACTION flag replacing false STOP/BOOK/AVERAGE, peak rescale, qty/avg_cost carry-forward + prune, and CORP ACTION digest rendering (RULES-06, STATE-01, STATE-02, STATE-03)
-
-**Wave 2** *(blocked on Wave 1)*
-
-- [x] 02-02-PLAN.md — `state.py` persistence (atomic load/save, date-keyed idempotent bounded snapshots) + same-day sentiment cache + sentinel wiring that makes peaks durable end-to-end (STATE-01, STATE-02, STATE-03, STATE-04)
-
-**Wave 3** *(blocked on Wave 2)*
-
-- [x] 02-03-PLAN.md — P&L telemetry in the digest header: overall unrealized (PNL-01), day change vs prior day's snapshot with off-by-one guard (PNL-02), N-day trend with graceful degradation (PNL-03), intraday % via yfinance fast_info (PNL-04)
-
-**Wave 4** *(blocked on Wave 3)*
-
-- [x] 02-04-PLAN.md — Friday-only weekly summary block: best/worst movers, week value change, flags-fired count from stored snapshots (PNL-05)
-
-### Phase 3: Autonomous & Failure-Safe Runtime
-
-**Goal**: The digest runs itself every weekday morning on GitHub Actions, skips NSE holidays, persists state automatically, and makes any failure or missed run loud and detectable rather than a false "all quiet".
-**Mode:** mvp
-**Depends on**: Phase 2
-**Requirements**: RUN-01, RUN-02, RUN-03, RUN-04, RUN-05, NOTIFY-04, NOTIFY-05
-**Success Criteria** (what must be TRUE):
-
-  1. Without any manual action a digest arrives every weekday around 08:30 IST, and no run fires on NSE trading holidays.
-  2. Updated `state.json` is committed back to the repo after each run, and overlapping/duplicate runs are prevented.
-  3. The workflow can be triggered on demand via `workflow_dispatch` for first-run verification and ad-hoc runs.
-  4. On an auth or fetch failure a Telegram warning naming the reason is sent and the run exits non-zero — a day is never silently skipped.
-  5. An independent dead-man's-switch makes a missed cron or crash detectable, so message absence is never mistaken for "all quiet".
-
-**Plans**: 3 plans
-
-Plans:
-**Wave 1**
-
-- [x] 03-01-PLAN.md — `holidays.py` static NSE-2026 trading-holiday set + `is_trading_holiday` (warn past last seeded year), `sentinel._market_closed` weekend/holiday early-exit, and a best-effort `notify.healthcheck_ping` heartbeat on every clean exit but never on the error path; unit-tested with injected `today` (RUN-02, NOTIFY-05)
-- [x] 03-02-PLAN.md — `.github/workflows/sentinel.yml`: 3×/weekday UTC cron (03:30/07:00/10:00, non-top-of-hour) + `workflow_dispatch` (RUN-01, RUN-05), `concurrency` guard (RUN-04), `permissions: contents: write` + `git-auto-commit-action@v5` state.json commit-back with `[skip ci]` and commented STATE_PAT fallback (RUN-03), un-masked `python -m sentinel` exit (NOTIFY-04); plus a README secrets + healthchecks.io + first-dispatch runbook
-
-**Wave 2** *(blocked on Wave 1)*
-
-- [x] 03-03-PLAN.md — First `workflow_dispatch` real-world human-verify checkpoint: confirm green run, Telegram digest, state.json commit-back (default token or STATE_PAT fallback), and healthchecks.io heartbeat (RUN-03, RUN-05, NOTIFY-04, NOTIFY-05)
-
-## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. End-to-End Morning Digest | 3/3 | Complete   | 2026-07-09 |
-| 2. Durable State & Portfolio Telemetry | 4/4 | Complete   | 2026-07-10 |
-| 3. Autonomous & Failure-Safe Runtime | 3/3 | Complete   | 2026-07-10 |
+---
+*Next milestone: run `/gsd-new-milestone` to define scope, requirements, and phases.*
