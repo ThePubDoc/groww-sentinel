@@ -145,15 +145,21 @@ def evaluate(holdings: list, state: dict, today: date):
         prior_qty = prior.get("qty")
         prior_avg_cost = prior.get("avg_cost")
 
+        corp_action = _detect_corp_action(prior_qty, prior_avg_cost, qty, avg_cost)
+
         peak = prior_peak if prior_peak is not None else max(ltp, avg_cost)
+        if corp_action and prior_qty:
+            # the stored peak was captured on the pre-action share count and
+            # is otherwise incomparable to the post-action ltp (D-11) --
+            # rescale before the max(peak, ltp) / below-peak math below.
+            peak = peak * (prior_qty / qty)
         peak = max(peak, ltp)
         pct_below_peak = (peak - ltp) / peak if peak else 0.0
-        new_state[symbol] = {"peak": peak}
+        new_state[symbol] = {"peak": peak, "qty": qty, "avg_cost": avg_cost}
 
         # only a drawdown from a peak ABOVE cost counts as a trailing stop
         trail = pct_below_peak if peak > avg_cost else 0.0
 
-        corp_action = _detect_corp_action(prior_qty, prior_avg_cost, qty, avg_cost)
         if corp_action:
             # P&L-derived drop/gain are unreliable on a distorted cost basis
             # (RULES-06, D-09) -- only weight (TRIM) and peak (TRAIL WATCH)
