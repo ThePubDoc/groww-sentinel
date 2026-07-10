@@ -73,43 +73,69 @@ def score_batch(client, symbol_headlines: dict[str, list[str]]) -> dict[str, dic
     }
 
 
-def adjust(flags: list[dict], api_key: str | None) -> list[dict]:
+def adjust(flags: list[dict], api_key: str | None, cache: dict, today) -> tuple[list[dict], dict]:
     """Downgrade AVERAGE -> AVOID when news is bearish. No-op without a key.
 
     Only AVERAGE flags are examined (that is the only risky *add*); every other
     flag passes through unchanged. Per-symbol failures degrade to the original
     flag so a flaky feed or API never blocks the digest.
+
+    Same-day cache (D-10): an AVERAGE candidate already scored today reuses
+    its cached label without a fetch or model call -- hourly reruns collapse
+    to ~1 model call/day. This is a deliberate design (not a bug): a stock
+    that turns bearish mid-morning won't re-score until the next calendar
+    day (02-RESEARCH Pitfall 5) -- do not "improve" this without discussion.
+    Returns (flags, new_cache); new_cache is pruned to symbols still present
+    in `flags` (D-05, bounded to current holdings).
     """
     if not api_key:
-        return flags
+        return flags, cache
 
-    # gather headlines for every AVERAGE candidate (news fetch is free; only the
-    # model call is the cost we batch). Non-AVERAGE flags are never scored.
-    items = {}
+    today_str = today.isoformat()
+    reused = {}   # same-day cache hits -- no fetch/score needed
+    to_score = {}  # symbol -> headlines for uncached/stale AVERAGE candidates
     for f in flags:
-        if f["flag"] == "AVERAGE":
-            heads = fetch_headlines(f["symbol"])
-            if heads:
-                items[f["symbol"]] = heads
-    if not items:
-        return flags
+        if f["flag"] != "AVERAGE":
+            continue
+        sym = f["symbol"]
+        cached = cache.get(sym)
+        if cached and cached.get("date") == today_str:
+            reused[sym] = cached
+            continue
+        heads = fetch_headlines(sym)
+        if heads:
+            to_score[sym] = heads
 
-    from google import genai
-    from google.genai import types
+    fresh = {}
+    if to_score:
+        from google import genai
+        from google.genai import types
 
-    # bounded: a slow/broken key must not add many seconds to an unattended run.
-    client = genai.Client(
-        api_key=api_key,
-        http_options=types.HttpOptions(timeout=15_000, retry_options=types.HttpRetryOptions(attempts=1)),
-    )
-    try:
-        scores = score_batch(client, items)  # ONE model call for all candidates
-    except Exception:
-        return flags  # sentiment never breaks the run
+        # bounded: a slow/broken key must not add many seconds to an unattended run.
+        client = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(timeout=15_000, retry_options=types.HttpRetryOptions(attempts=1)),
+        )
+        try:
+            scores = score_batch(client, to_score)  # ONE model call for all candidates
+            fresh = {
+                sym: {"date": today_str, "label": s.get("label", "neutral"), "reason": s.get("reason", "")}
+                for sym, s in scores.items()
+            }
+        except Exception:
+            fresh = {}  # sentiment never breaks the run; carried-forward below
+
+    # a symbol we tried to score but got no fresh result (batch error, or
+    # missing from the response) keeps its prior cache entry unchanged.
+    carried = {sym: cache[sym] for sym in to_score if sym not in fresh and sym in cache}
+    merged = {**reused, **carried, **fresh}
+
+    current_symbols = {f["symbol"] for f in flags}
+    new_cache = {sym: v for sym, v in merged.items() if sym in current_symbols}
 
     out = []
     for f in flags:
-        s = scores.get(f["symbol"]) if f["flag"] == "AVERAGE" else None
+        s = merged.get(f["symbol"]) if f["flag"] == "AVERAGE" else None
         if s and s["label"] == "bearish":
             blocked = dict(f)
             blocked["flag"] = AVOID
@@ -120,4 +146,4 @@ def adjust(flags: list[dict], api_key: str | None) -> list[dict]:
             out.append(blocked)
         else:
             out.append(f)
-    return out
+    return out, new_cache
