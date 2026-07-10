@@ -2,15 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
+current_phase: 02
+current_phase_name: Durable State & Portfolio Telemetry
 status: executing
-stopped_at: Phase 2 context gathered
-last_updated: "2026-07-10T06:34:26.901Z"
-last_activity: 2026-07-10 -- Phase 02 planning complete
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-07-10T06:52:55.070Z"
+last_activity: 2026-07-10
+last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 7
-  completed_plans: 3
+  completed_plans: 4
   percent: 33
 ---
 
@@ -21,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** Every trading morning I get a short, trustworthy Telegram digest flagging which holdings need attention — so I never miss a stop, trim, or averaging opportunity.
-**Current focus:** Phase 2 — durable state & portfolio telemetry
+**Current focus:** Phase 02 — Durable State & Portfolio Telemetry
 
 ## Current Position
 
-Phase: 2
-Plan: Not started
+Phase: 02 (Durable State & Portfolio Telemetry) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-10 -- Phase 02 planning complete
+Last activity: 2026-07-10 -- Phase 02 execution started
 
 Progress: [███████░░░] 67%
 
@@ -54,6 +57,7 @@ Progress: [███████░░░] 67%
 *Updated after each plan completion*
 | Phase 01 P01 | 20min | 2 tasks | 4 files |
 | Phase 01 P02 | 25min | 2 tasks | 2 files |
+| Phase 02 P01 | 16min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -67,6 +71,8 @@ Recent decisions affecting current work:
 - [Roadmap]: Dead-man's-switch (NOTIFY-05) placed in Phase 3 with the automated runtime — it only becomes meaningful once the bot runs unattended on cron.
 - [Phase 01]: D-01..D-14 implemented exactly as locked in rules.py; AVG tier2/3 boundary tests needed an isolating state peak due to a Pitfall 1 coincidence (TRAIL WATCH and AVG tier2 share the same 20% threshold when state={})
 - [Phase 01]: broker.py verified live get_holdings_for_user() response wraps list under a "holdings" key -- corrected against RESEARCH.md's simplified example before implementing
+- [Phase 02]: CORP_ACTION flag string is "CORP ACTION" (space, matching NO_PRICE/BOOK 50% spacing), not the hyphenated CORP-ACTION spelling in 02-CONTEXT.md prose — Plan 02-01's action block was explicit on the spacing; notify.py grouping must match rules.py's constant exactly
+- [Phase 02]: Corp-action override only replaces STOP/BOOK/AVERAGE; TRIM and TRAIL WATCH still evaluate and take precedence over CORP_ACTION — Per D-09: weight-based and peak-based signals stay meaningful even when the P&L basis is distorted
 
 ### Pending Todos
 
@@ -88,6 +94,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T06:02:03.595Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-durable-state-portfolio-telemetry/02-CONTEXT.md
+Last session: 2026-07-10T06:52:55.064Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: None

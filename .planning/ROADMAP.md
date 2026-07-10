@@ -69,12 +69,12 @@ Plans:
   4. Re-running on the same day overwrites that day's snapshot without corrupting history (idempotent), state is rebuilt from current holdings each run, and stored snapshots stay bounded to recent entries.
   5. When a holding's average cost looks corporate-action-distorted, the digest emits a warning instead of a false STOP HIT / BOOK 50% flag.
 
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Pure rules: corp-action safety + durable-peak mechanics — `_detect_corp_action` (qty jump + capital flat), CORP ACTION flag replacing false STOP/BOOK/AVERAGE, peak rescale, qty/avg_cost carry-forward + prune, and CORP ACTION digest rendering (RULES-06, STATE-01, STATE-02, STATE-03)
+- [x] 02-01-PLAN.md — Pure rules: corp-action safety + durable-peak mechanics — `_detect_corp_action` (qty jump + capital flat), CORP ACTION flag replacing false STOP/BOOK/AVERAGE, peak rescale, qty/avg_cost carry-forward + prune, and CORP ACTION digest rendering (RULES-06, STATE-01, STATE-02, STATE-03)
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -117,5 +117,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. End-to-End Morning Digest | 3/3 | Complete   | 2026-07-09 |
-| 2. Durable State & Portfolio Telemetry | 0/4 | Not started | - |
+| 2. Durable State & Portfolio Telemetry | 1/4 | In Progress|  |
 | 3. Autonomous & Failure-Safe Runtime | 0/2 | Not started | - |

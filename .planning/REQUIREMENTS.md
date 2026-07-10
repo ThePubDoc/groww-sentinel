@@ -22,13 +22,13 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **RULES-03**: All rule thresholds are defined as named constants in one place for tuning
 - [x] **RULES-04**: ~~`config.yaml` core/tactical tagging + UNTAGGED~~ — **SUPERSEDED (Phase 1)**: replaced by the uniform P&L ladder in RULES-02. No config file, no tagging, no UNTAGGED — every holding gets a verdict from its P&L.
 - [x] **RULES-05**: AVG CANDIDATE always carries the 3-gate manual-check reminder (flag and reminder are one coupled unit)
-- [ ] **RULES-06**: Verify whether `growwapi` `average_price` is corporate-action adjusted; if not, emit a warning rather than a false STOP/BOOK flag on distorted avg cost
+- [x] **RULES-06**: Verify whether `growwapi` `average_price` is corporate-action adjusted; if not, emit a warning rather than a false STOP/BOOK flag on distorted avg cost
 
 ### State Model
 
-- [ ] **STATE-01**: Track per-symbol peak price keyed to the current holding period
-- [ ] **STATE-02**: Rebuild `new_state` from current holdings each run, using prior state as a read-only lookup
-- [ ] **STATE-03**: Prune state for symbols no longer held; reset a symbol's peak on exit and re-seed on rebuy
+- [x] **STATE-01**: Track per-symbol peak price keyed to the current holding period
+- [x] **STATE-02**: Rebuild `new_state` from current holdings each run, using prior state as a read-only lookup
+- [x] **STATE-03**: Prune state for symbols no longer held; reset a symbol's peak on exit and re-seed on rebuy
 - [ ] **STATE-04**: Store daily portfolio + per-symbol snapshots keyed by date; a same-day rerun overwrites (idempotent); history bounded to recent entries
 - [x] **STATE-05**: On first run (no state.json), seed peaks and snapshots from current LTP
 
@@ -112,16 +112,16 @@ Which phases cover which requirements. Populated during roadmap creation.
 | NOTIFY-03 | Phase 1 | Pending |
 | TEST-01 | Phase 1 | Complete |
 | TEST-02 | Phase 1 | Complete |
-| STATE-01 | Phase 2 | Pending |
-| STATE-02 | Phase 2 | Pending |
-| STATE-03 | Phase 2 | Pending |
+| STATE-01 | Phase 2 | Complete |
+| STATE-02 | Phase 2 | Complete |
+| STATE-03 | Phase 2 | Complete |
 | STATE-04 | Phase 2 | Pending |
 | PNL-01 | Phase 2 | Pending |
 | PNL-02 | Phase 2 | Pending |
 | PNL-03 | Phase 2 | Pending |
 | PNL-04 | Phase 2 | Pending |
 | PNL-05 | Phase 2 | Pending |
-| RULES-06 | Phase 2 | Pending |
+| RULES-06 | Phase 2 | Complete |
 | RUN-01 | Phase 3 | Pending |
 | RUN-02 | Phase 3 | Pending |
 | RUN-03 | Phase 3 | Pending |
@@ -131,6 +131,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | NOTIFY-05 | Phase 3 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 33 total (the doc previously noted "27"; the enumerated list is 33 — all mapped, none dropped)
 - Mapped to phases: 33
 - Unmapped: 0 ✓
