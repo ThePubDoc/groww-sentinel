@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 3 context gathered
-last_updated: "2026-07-10T08:21:34.794Z"
-last_activity: 2026-07-10 -- Phase 03 planning complete
+last_updated: "2026-07-10T09:06:28.051Z"
+last_activity: 2026-07-10
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 10
-  completed_plans: 7
+  completed_plans: 8
   percent: 67
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** Every trading morning I get a short, trustworthy Telegram digest flagging which holdings need attention — so I never miss a stop, trim, or averaging opportunity.
-**Current focus:** Phase 3 — autonomous & failure safe runtime
+**Current focus:** Phase 03 — Autonomous & Failure-Safe Runtime
 
 ## Current Position
 
-Phase: 3
-Plan: Not started
+Phase: 03 (Autonomous & Failure-Safe Runtime) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-10 -- Phase 03 planning complete
+Last activity: 2026-07-10
 
-Progress: [██████████] 100%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [██████████] 100%
 | Phase 02 P02 | 4min | 3 tasks | 6 files |
 | Phase 02 P03 | 6min | 3 tasks | 8 files |
 | Phase 02 P04 | 25min | 2 tasks | 6 files |
+| Phase 03 P01 | 25min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,9 @@ Recent decisions affecting current work:
 - [Phase 02]: get_intraday (fast_info) kept fully separate from get_prev_close (yf.download) -- different freshness contracts, PNL-04 vs PNL-01..03
 - [Phase 02]: Portfolio intraday % is value-weighted (qty*last vs qty*prev_close), matching how overall P&L is already weighted by position size
 - [Phase 02]: [Phase 02] Weekly recap (_weekly_summary) computed from post-write new_snapshots, not pre-write loaded snapshots, so today's own entry is always the week's latest data point on the first Friday run
+- [Phase 03]: holidays.py is a pure-stdlib static NSE 2026 date set rather than pandas_market_calendars, per locked D-03
+- [Phase 03]: Past-LAST_SEEDED_YEAR warns loudly but does not itself trigger early exit -- only weekend/holiday closes the run
+- [Phase 03]: healthcheck_ping fires on all four clean-exit paths and none of the error paths
 
 ### Pending Todos
 
@@ -101,6 +105,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T07:51:02.649Z
+Last session: 2026-07-10T09:04:20.756Z
 Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-autonomous-failure-safe-runtime/03-CONTEXT.md
+Resume file: None

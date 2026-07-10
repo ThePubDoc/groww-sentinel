@@ -107,7 +107,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 03-01-PLAN.md — `holidays.py` static NSE-2026 trading-holiday set + `is_trading_holiday` (warn past last seeded year), `sentinel._market_closed` weekend/holiday early-exit, and a best-effort `notify.healthcheck_ping` heartbeat on every clean exit but never on the error path; unit-tested with injected `today` (RUN-02, NOTIFY-05)
+- [x] 03-01-PLAN.md — `holidays.py` static NSE-2026 trading-holiday set + `is_trading_holiday` (warn past last seeded year), `sentinel._market_closed` weekend/holiday early-exit, and a best-effort `notify.healthcheck_ping` heartbeat on every clean exit but never on the error path; unit-tested with injected `today` (RUN-02, NOTIFY-05)
 - [ ] 03-02-PLAN.md — `.github/workflows/sentinel.yml`: 3×/weekday UTC cron (03:30/07:00/10:00, non-top-of-hour) + `workflow_dispatch` (RUN-01, RUN-05), `concurrency` guard (RUN-04), `permissions: contents: write` + `git-auto-commit-action@v5` state.json commit-back with `[skip ci]` and commented STATE_PAT fallback (RUN-03), un-masked `python -m sentinel` exit (NOTIFY-04); plus a README secrets + healthchecks.io + first-dispatch runbook
 
 **Wave 2** *(blocked on Wave 1)*
@@ -123,4 +123,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. End-to-End Morning Digest | 3/3 | Complete   | 2026-07-09 |
 | 2. Durable State & Portfolio Telemetry | 4/4 | Complete   | 2026-07-10 |
-| 3. Autonomous & Failure-Safe Runtime | 0/3 | Not started | - |
+| 3. Autonomous & Failure-Safe Runtime | 1/3 | In Progress|  |

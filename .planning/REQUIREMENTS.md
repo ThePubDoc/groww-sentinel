@@ -46,12 +46,12 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **NOTIFY-02**: List only non-HOLD stocks, grouped into action vs opportunity
 - [ ] **NOTIFY-03**: Send a one-line "all quiet" heartbeat when nothing is flagged (proof the job ran)
 - [ ] **NOTIFY-04**: On auth/fetch failure, send a Telegram warning with the reason and exit non-zero — never silently skip a day
-- [ ] **NOTIFY-05**: Independent dead-man's-switch so that message absence (cron miss / crash) is detectable, not mistaken for "all quiet"
+- [x] **NOTIFY-05**: Independent dead-man's-switch so that message absence (cron miss / crash) is detectable, not mistaken for "all quiet"
 
 ### Runtime & CI
 
 - [ ] **RUN-01**: Run on GitHub Actions cron targeting ~08:30 IST on weekdays, using a non-top-of-hour minute
-- [ ] **RUN-02**: Skip NSE trading holidays (static holidays list for v1)
+- [x] **RUN-02**: Skip NSE trading holidays (static holidays list for v1)
 - [ ] **RUN-03**: Commit the updated state.json back to the repo after the run (`contents: write`), as a workflow step after the Python process exits
 - [ ] **RUN-04**: `concurrency` guard preventing overlapping or duplicate runs
 - [ ] **RUN-05**: `workflow_dispatch` manual trigger for on-demand runs and first-run verification
@@ -123,12 +123,12 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PNL-05 | Phase 2 | Complete |
 | RULES-06 | Phase 2 | Complete |
 | RUN-01 | Phase 3 | Pending |
-| RUN-02 | Phase 3 | Pending |
+| RUN-02 | Phase 3 | Complete |
 | RUN-03 | Phase 3 | Pending |
 | RUN-04 | Phase 3 | Pending |
 | RUN-05 | Phase 3 | Pending |
 | NOTIFY-04 | Phase 3 | Pending |
-| NOTIFY-05 | Phase 3 | Pending |
+| NOTIFY-05 | Phase 3 | Complete |
 
 **Coverage:**
 
