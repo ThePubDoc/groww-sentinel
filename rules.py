@@ -28,6 +28,13 @@ STOP_DROP = 0.25           # drop > 0.25 -> cut the loss
 TRIM_WEIGHT = 0.10         # weight > 0.10 of portfolio -> trim concentration
 TRAIL_BELOW_PEAK = 0.20    # > 0.20 below a real peak -> trailing-stop watch
 
+# Corp-action (bonus/split) detection tolerances (RULES-06, D-09). A real
+# AVERAGE-down buy moves invested capital roughly in proportion to qty added;
+# a bonus/split moves qty with ~zero new capital -- both conditions together
+# separate the two (see _detect_corp_action).
+QTY_JUMP_PCT = 0.05        # qty grew > 5% since last run's stored qty
+COST_FLAT_TOLERANCE = 0.05  # invested capital changed < 5% over that jump
+
 # Position sizing (tunable). Sell fractions are implied by the BOOK tiers /
 # STOP; AVERAGE adds a measured tranche of the current holding.
 BOOK_HALF_SELL = 0.50
@@ -35,6 +42,7 @@ BOOK_QUARTER_SELL = 0.25
 AVERAGE_ADD_FRAC = 0.25    # AVERAGE -> buy this fraction more shares
 
 NO_PRICE = "NO PRICE"
+CORP_ACTION = "CORP ACTION"
 STOP = "STOP"
 TRIM = "TRIM"
 BOOK_50 = "BOOK 50%"
@@ -62,6 +70,25 @@ def _resolve(drop: float, gain: float, weight: float, trail: float) -> str:
     if drop > AVERAGE_DROP:
         return AVERAGE
     return HOLD
+
+
+def _detect_corp_action(prior_qty, prior_avg, qty: int, avg_cost: float) -> bool:
+    """True when qty jumped but invested capital stayed flat (D-09).
+
+    A genuine AVERAGE-down buy moves qty*avg_cost roughly in proportion to
+    the shares added; a bonus/split moves qty with ~zero new capital. Both
+    conditions (qty jump AND capital-flat) must hold -- qty growth alone
+    would mislabel a real large purchase (see 02-RESEARCH Pitfall 1).
+    """
+    if not prior_qty or prior_qty <= 0:
+        return False  # first-seen symbol -- no baseline to compare against
+    qty_growth = (qty - prior_qty) / prior_qty
+    if qty_growth <= QTY_JUMP_PCT:
+        return False
+    prior_capital = prior_qty * prior_avg
+    new_capital = qty * avg_cost
+    cost_growth = abs(new_capital - prior_capital) / prior_capital if prior_capital else 0.0
+    return cost_growth < COST_FLAT_TOLERANCE
 
 
 def _shares(flag: str, qty: int, ltp: float, total_value: float) -> int:
@@ -113,7 +140,11 @@ def evaluate(holdings: list, state: dict, today: date):
         gain = max(0.0, pnl_frac)
         weight = (qty * ltp / total_value) if total_value else 0.0
 
-        prior_peak = state.get(symbol, {}).get("peak")
+        prior = state.get(symbol, {})
+        prior_peak = prior.get("peak")
+        prior_qty = prior.get("qty")
+        prior_avg_cost = prior.get("avg_cost")
+
         peak = prior_peak if prior_peak is not None else max(ltp, avg_cost)
         peak = max(peak, ltp)
         pct_below_peak = (peak - ltp) / peak if peak else 0.0
@@ -121,13 +152,34 @@ def evaluate(holdings: list, state: dict, today: date):
 
         # only a drawdown from a peak ABOVE cost counts as a trailing stop
         trail = pct_below_peak if peak > avg_cost else 0.0
-        flag = _resolve(drop, gain, weight, trail)
-        shares = _shares(flag, qty, ltp, total_value)
+
+        corp_action = _detect_corp_action(prior_qty, prior_avg_cost, qty, avg_cost)
+        if corp_action:
+            # P&L-derived drop/gain are unreliable on a distorted cost basis
+            # (RULES-06, D-09) -- only weight (TRIM) and peak (TRAIL WATCH)
+            # still fire; STOP/BOOK/AVERAGE are replaced with CORP_ACTION.
+            if weight > TRIM_WEIGHT:
+                flag = TRIM
+            elif trail > TRAIL_BELOW_PEAK:
+                flag = TRAIL_WATCH
+            else:
+                flag = CORP_ACTION
+        else:
+            flag = _resolve(drop, gain, weight, trail)
+
+        if flag == CORP_ACTION:
+            # a distorted cost basis must not display a pct or a trade size
+            shares, value, pct, reminder = 0, 0.0, None, False
+        else:
+            shares = _shares(flag, qty, ltp, total_value)
+            value = shares * ltp
+            pct = pnl_frac
+            reminder = flag == AVERAGE
 
         flags.append({
-            "symbol": symbol, "flag": flag, "pct": pnl_frac, "weight": weight,
+            "symbol": symbol, "flag": flag, "pct": pct, "weight": weight,
             "pct_below_peak": pct_below_peak, "shares": shares,
-            "value": shares * ltp, "reminder": flag == AVERAGE,
+            "value": value, "reminder": reminder,
         })
 
     return flags, new_state
