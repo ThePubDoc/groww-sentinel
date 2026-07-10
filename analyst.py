@@ -164,7 +164,10 @@ def score_portfolio(client, flags, portfolio, funds, macro, sector_weights) -> d
         contents=prompt,
         config={
             "response_mime_type": "application/json",
-            "max_output_tokens": 1200,
+            # ~45 output tokens/holding (flag+confidence+thesis+key_risk); a real
+            # portfolio is 30-40 names, so 1200 truncated the JSON mid-string and
+            # json.loads blew up. 8192 = ~4x headroom (fits ~150 holdings).
+            "max_output_tokens": 8192,
             "thinking_config": {"thinking_budget": 0},
         },
     )
@@ -291,4 +294,9 @@ def analyze(flags, portfolio, holdings, api_key, cache, today):
     for sym, v in scores.items():
         if sym in current:
             new_cache[sym] = {**v, "date": today_str}
+
+    # counts only (no symbols/values) -- ops signal that the overlay ran.
+    applied = sum(1 for f in out if f.get("analyst_override"))
+    print(f"analyst: brief ok, {applied} override(s) applied across {len(scores)} scored",
+          file=sys.stderr)
     return out, brief, new_cache
