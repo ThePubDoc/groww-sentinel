@@ -21,7 +21,7 @@ never mistaken for "all quiet".
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: End-to-End Morning Digest** - Manually-triggered run fetches real holdings + prices, applies the rules engine, and sends a real Telegram flag digest (completed 2026-07-09)
-- [ ] **Phase 2: Durable State & Portfolio Telemetry** - Peaks and portfolio value persist across runs; digest carries P&L, N-day trend, and Friday weekly summary
+- [x] **Phase 2: Durable State & Portfolio Telemetry** - Peaks and portfolio value persist across runs; digest carries P&L, N-day trend, and Friday weekly summary (completed 2026-07-10)
 - [ ] **Phase 3: Autonomous & Failure-Safe Runtime** - Runs itself every weekday on GitHub Actions, skips holidays, persists state, and makes failures/missed runs detectable
 
 ## Phase Details
@@ -86,7 +86,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 02-04-PLAN.md — Friday-only weekly summary block: best/worst movers, week value change, flags-fired count from stored snapshots (PNL-05)
+- [x] 02-04-PLAN.md — Friday-only weekly summary block: best/worst movers, week value change, flags-fired count from stored snapshots (PNL-05)
 
 ### Phase 3: Autonomous & Failure-Safe Runtime
 
@@ -117,5 +117,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. End-to-End Morning Digest | 3/3 | Complete   | 2026-07-09 |
-| 2. Durable State & Portfolio Telemetry | 3/4 | In Progress|  |
+| 2. Durable State & Portfolio Telemetry | 4/4 | Complete   | 2026-07-10 |
 | 3. Autonomous & Failure-Safe Runtime | 0/2 | Not started | - |

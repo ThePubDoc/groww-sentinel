@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-07-10T07:11:05.176Z"
+status: verifying
+stopped_at: Completed 02-04-PLAN.md (Phase 2 fully delivered)
+last_updated: "2026-07-10T07:19:40.142Z"
 last_activity: 2026-07-10
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 7
-  completed_plans: 6
-  percent: 33
+  completed_plans: 7
+  percent: 67
 ---
 
 # Project State
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 Phase: 02 (Durable State & Portfolio Telemetry) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-10
 
-Progress: [█████████░] 86%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Progress: [█████████░] 86%
 | Phase 02 P01 | 16min | 3 tasks | 4 files |
 | Phase 02 P02 | 4min | 3 tasks | 6 files |
 | Phase 02 P03 | 6min | 3 tasks | 8 files |
+| Phase 02 P04 | 25min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,7 @@ Recent decisions affecting current work:
 - [Phase 02]: day_change/n_day_trend filter date < today.isoformat() explicitly (D-12), never sorted(keys)[-2]
 - [Phase 02]: get_intraday (fast_info) kept fully separate from get_prev_close (yf.download) -- different freshness contracts, PNL-04 vs PNL-01..03
 - [Phase 02]: Portfolio intraday % is value-weighted (qty*last vs qty*prev_close), matching how overall P&L is already weighted by position size
+- [Phase 02]: [Phase 02] Weekly recap (_weekly_summary) computed from post-write new_snapshots, not pre-write loaded snapshots, so today's own entry is always the week's latest data point on the first Friday run
 
 ### Pending Todos
 
@@ -98,6 +100,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T07:10:46.469Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-07-10T07:19:32.324Z
+Stopped at: Completed 02-04-PLAN.md (Phase 2 fully delivered)
 Resume file: None

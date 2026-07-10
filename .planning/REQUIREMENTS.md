@@ -38,7 +38,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **PNL-02**: Report day P&L as snapshot delta vs the prior run's stored portfolio value
 - [x] **PNL-03**: Report an N-day portfolio direction/trend from stored snapshots
 - [x] **PNL-04**: Include an intraday day-change % when the LTP source exposes previous close
-- [ ] **PNL-05**: Friday's digest appends a weekly summary block (best/worst movers, week value change, flags-fired count)
+- [x] **PNL-05**: Friday's digest appends a weekly summary block (best/worst movers, week value change, flags-fired count)
 
 ### Notification
 
@@ -120,7 +120,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PNL-02 | Phase 2 | Complete |
 | PNL-03 | Phase 2 | Complete |
 | PNL-04 | Phase 2 | Complete |
-| PNL-05 | Phase 2 | Pending |
+| PNL-05 | Phase 2 | Complete |
 | RULES-06 | Phase 2 | Complete |
 | RUN-01 | Phase 3 | Pending |
 | RUN-02 | Phase 3 | Pending |
