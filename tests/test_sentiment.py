@@ -1,5 +1,5 @@
-"""Tests for the optional sentiment layer -- mocked headlines + scorer, no
-network, no live LLM calls (TEST-02)."""
+"""Tests for the optional sentiment layer -- mocked headlines + batched scorer,
+no network, no live LLM calls (TEST-02)."""
 
 from unittest.mock import patch
 
@@ -23,7 +23,8 @@ def test_no_key_is_a_noop():
 
 def test_bearish_downgrades_average_to_avoid():
     with patch("sentiment.fetch_headlines", return_value=["bad news"]), \
-         patch("sentiment.score", return_value={"label": "bearish", "reason": "fraud probe"}):
+         patch("sentiment.score_batch",
+               return_value={"RELIANCE": {"label": "bearish", "reason": "fraud probe"}}):
         out = sentiment.adjust([avg()], api_key="k")
     assert out[0]["flag"] == sentiment.AVOID
     assert out[0]["reminder"] is False
@@ -33,28 +34,37 @@ def test_bearish_downgrades_average_to_avoid():
 
 def test_bullish_leaves_average_unchanged():
     with patch("sentiment.fetch_headlines", return_value=["great news"]), \
-         patch("sentiment.score", return_value={"label": "bullish", "reason": "strong results"}):
+         patch("sentiment.score_batch",
+               return_value={"RELIANCE": {"label": "bullish", "reason": "strong results"}}):
         out = sentiment.adjust([avg()], api_key="k")
     assert out[0]["flag"] == "AVERAGE"
 
 
-def test_non_average_flags_never_touched():
-    with patch("sentiment.fetch_headlines") as fh, patch("sentiment.score") as sc:
+def test_only_one_model_call_for_many_candidates():
+    flags = [avg("A"), avg("B"), avg("C")]
+    with patch("sentiment.fetch_headlines", return_value=["h"]), \
+         patch("sentiment.score_batch", return_value={}) as sb:
+        sentiment.adjust(flags, api_key="k")
+    sb.assert_called_once()  # batched: single call regardless of candidate count
+
+
+def test_non_average_flags_never_scored():
+    with patch("sentiment.fetch_headlines") as fh, patch("sentiment.score_batch") as sb:
         out = sentiment.adjust([other()], api_key="k")
     assert out[0]["flag"] == "BOOK 50%"
     fh.assert_not_called()
-    sc.assert_not_called()
+    sb.assert_not_called()
 
 
-def test_no_headlines_leaves_flag_unchanged():
-    with patch("sentiment.fetch_headlines", return_value=[]), patch("sentiment.score") as sc:
+def test_no_headlines_skips_model_call():
+    with patch("sentiment.fetch_headlines", return_value=[]), patch("sentiment.score_batch") as sb:
         out = sentiment.adjust([avg()], api_key="k")
     assert out[0]["flag"] == "AVERAGE"
-    sc.assert_not_called()
+    sb.assert_not_called()
 
 
 def test_scorer_error_degrades_to_original_flag():
     with patch("sentiment.fetch_headlines", return_value=["news"]), \
-         patch("sentiment.score", side_effect=RuntimeError("api down")):
+         patch("sentiment.score_batch", side_effect=RuntimeError("api down")):
         out = sentiment.adjust([avg()], api_key="k")
     assert out[0]["flag"] == "AVERAGE"  # never breaks the run

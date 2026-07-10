@@ -38,28 +38,39 @@ def fetch_headlines(symbol: str, limit: int = HEADLINE_LIMIT) -> list[str]:
     return titles
 
 
-def score(client, symbol: str, headlines: list[str]) -> dict:
-    """One Gemini Flash call -> {'label','reason'}. Raises on API/parse error (caller guards)."""
+def score_batch(client, symbol_headlines: dict[str, list[str]]) -> dict[str, dict]:
+    """ONE Gemini call for all candidates -> {symbol: {'label','reason'}}.
+
+    Raises on API/parse error (caller guards). Batching keeps the model cost at
+    a single request per run regardless of how many AVERAGE candidates there are.
+    """
+    blocks = [
+        f"{sym}:\n" + "\n".join(f"  - {h}" for h in heads)
+        for sym, heads in symbol_headlines.items()
+    ]
     prompt = (
-        f"Recent news headlines for the stock {symbol}:\n"
-        + "\n".join(f"- {h}" for h in headlines)
-        + '\n\nClassify near-term sentiment for someone deciding whether to buy '
-        'more of this stock. Reply ONLY compact JSON: '
-        '{"label":"bullish|neutral|bearish","reason":"<=12 words"}.'
+        "Classify near-term news sentiment for EACH stock below, for someone "
+        "deciding whether to buy MORE of it. Judge each stock only on its own "
+        "headlines.\n\nReply ONLY compact JSON mapping each ticker to an object "
+        '{"label":"bullish|neutral|bearish","reason":"<=12 words"}, e.g. '
+        '{"TCS":{"label":"neutral","reason":"..."}}.\n\n' + "\n\n".join(blocks)
     )
     resp = client.models.generate_content(
         model=MODEL,
         contents=prompt,
         config={
             "response_mime_type": "application/json",
-            "max_output_tokens": 200,
-            # 2.5-flash is a thinking model; disable thinking so the token
-            # budget produces the JSON answer, not hidden reasoning.
+            "max_output_tokens": 800,
+            # flash models may 'think'; disable so the budget yields JSON, not reasoning.
             "thinking_config": {"thinking_budget": 0},
         },
     )
     data = json.loads(resp.text)
-    return {"label": data.get("label", "neutral"), "reason": data.get("reason", "")}
+    return {
+        sym: {"label": v.get("label", "neutral"), "reason": v.get("reason", "")}
+        for sym, v in data.items()
+        if isinstance(v, dict)
+    }
 
 
 def adjust(flags: list[dict], api_key: str | None) -> list[dict]:
@@ -71,30 +82,35 @@ def adjust(flags: list[dict], api_key: str | None) -> list[dict]:
     """
     if not api_key:
         return flags
+
+    # gather headlines for every AVERAGE candidate (news fetch is free; only the
+    # model call is the cost we batch). Non-AVERAGE flags are never scored.
+    items = {}
+    for f in flags:
+        if f["flag"] == "AVERAGE":
+            heads = fetch_headlines(f["symbol"])
+            if heads:
+                items[f["symbol"]] = heads
+    if not items:
+        return flags
+
     from google import genai
     from google.genai import types
 
-    # bounded: a slow/broken key must not add many seconds to an unattended
-    # cron run -- fail fast and degrade to the deterministic flag.
+    # bounded: a slow/broken key must not add many seconds to an unattended run.
     client = genai.Client(
         api_key=api_key,
-        http_options=types.HttpOptions(timeout=10_000, retry_options=types.HttpRetryOptions(attempts=1)),
+        http_options=types.HttpOptions(timeout=15_000, retry_options=types.HttpRetryOptions(attempts=1)),
     )
+    try:
+        scores = score_batch(client, items)  # ONE model call for all candidates
+    except Exception:
+        return flags  # sentiment never breaks the run
+
     out = []
     for f in flags:
-        if f["flag"] != "AVERAGE":
-            out.append(f)
-            continue
-        headlines = fetch_headlines(f["symbol"])
-        if not headlines:
-            out.append(f)
-            continue
-        try:
-            s = score(client, f["symbol"], headlines)
-        except Exception:
-            out.append(f)
-            continue
-        if s["label"] == "bearish":
+        s = scores.get(f["symbol"]) if f["flag"] == "AVERAGE" else None
+        if s and s["label"] == "bearish":
             blocked = dict(f)
             blocked["flag"] = AVOID
             blocked["reminder"] = False
