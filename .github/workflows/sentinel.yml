@@ -1,13 +1,16 @@
 name: Groww Sentinel
 
 on:
+  # GitHub cron is UTC-only. Times below = IST - 5:30. Odd minutes (not :00/:30)
+  # dodge the most-contended queue slots -- GitHub silently drops scheduled runs
+  # at popular round marks under load.
   schedule:
-    # 03:30 UTC = 09:00 IST (pre-open), Mon-Fri
-    - cron: "30 3 * * 1-5"
-    # 07:00 UTC = 12:30 IST (midday), Mon-Fri
-    - cron: "0 7 * * 1-5"
-    # 10:00 UTC = 15:30 IST (close), Mon-Fri
-    - cron: "0 10 * * 1-5"
+    # 09:10 IST (pre-open, NSE opens 09:15), Mon-Fri
+    - cron: "40 3 * * 1-5"
+    # 12:00 IST (midday), Mon-Fri
+    - cron: "30 6 * * 1-5"
+    # 15:15 IST (near close, NSE closes 15:30), Mon-Fri
+    - cron: "45 9 * * 1-5"
   workflow_dispatch: {}
 
 concurrency:
